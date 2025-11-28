@@ -1,57 +1,78 @@
 local config = require("scalpel.config")
+local curl = require("plenary.curl")
+local validator = require("scalpel.validator")
 local M = {}
 
 -- Simple curl wrapper
 function M.request(method, endpoint, body, callback)
-  local url = "http://127.0.0.1:" .. config.options.port .. endpoint
+  local url = config.options.server_url .. endpoint
   
-  local cmd = { "curl", "-X", method, url }
-  
-  if body then
-    table.insert(cmd, "-H")
-    table.insert(cmd, "Content-Type: application/json")
-    table.insert(cmd, "-d")
-    table.insert(cmd, vim.json.encode(body))
+  curl.request({
+    url = url,
+    method = method,
+    body = vim.fn.json_encode(body),
+    headers = {
+      ["Content-Type"] = "application/json",
+    },
+    callback = vim.schedule_wrap(function(response)
+      if response.status ~= 200 then
+        -- vim.notify("Scalpel request failed: " .. response.body, vim.log.levels.ERROR)
+        if callback then callback(nil, "HTTP " .. response.status .. ": " .. response.body) end
+        return
+      end
+
+      local ok, decoded = pcall(vim.fn.json_decode, response.body)
+      if not ok then
+        if callback then callback(nil, "JSON decode error") end
+        return
+      end
+
+      if callback then
+        callback(decoded, nil)
+      end
+    end),
+  })
+end
+
+local debounce_timer = nil
+
+function M.complete(prefix, suffix, filetype, callback)
+  -- Cancel previous timer if it exists
+  if debounce_timer then
+    debounce_timer:stop()
+    debounce_timer:close()
+    debounce_timer = nil
   end
 
-  vim.system(cmd, { text = true }, function(obj)
-    if obj.code ~= 0 then
-      local err_msg = (obj.stderr and obj.stderr ~= "") and obj.stderr or obj.stdout
-      if err_msg == "" then err_msg = "Unknown curl error (exit code " .. obj.code .. ")" end
+  -- Create new timer
+  debounce_timer = vim.loop.new_timer()
+  debounce_timer:start(300, 0, vim.schedule_wrap(function()
+    debounce_timer:stop()
+    debounce_timer:close()
+    debounce_timer = nil
+
+    local body = {
+      prefix = prefix,
+      suffix = suffix,
+    }
+    
+    M.request("POST", "/complete", body, function(response, err)
+      if err then
+        callback(nil, err)
+        return
+      end
+  
+      local completion = response.completion
+      local full_code = prefix .. completion .. suffix
       
-      vim.schedule(function()
-        vim.notify("Scalpel request failed: " .. err_msg, vim.log.levels.ERROR)
-      end)
-      if callback then callback(nil, err_msg) end
-      return
-    end
-
-    local decoded_ok, decoded = pcall(vim.json.decode, obj.stdout)
-    if not decoded_ok then
-       -- It might not be JSON, just return text
-       if callback then callback(obj.stdout, nil) end
-    else
-       if callback then callback(decoded, nil) end
-    end
-  end)
-end
-
-function M.health_check()
-  M.request("GET", "/health", nil, function(res, err)
-    if err then
-      vim.notify("Scalpel server is unreachable", vim.log.levels.WARN)
-    else
-      vim.notify("Scalpel server is healthy: " .. vim.inspect(res), vim.log.levels.INFO)
-    end
-  end)
-end
-
-function M.complete(prefix, suffix, callback)
-  local body = {
-    prefix = prefix,
-    suffix = suffix,
-  }
-  M.request("POST", "/complete", body, callback)
+      if validator.validate(full_code, filetype) then
+        callback(response, nil)
+      else
+        -- vim.notify("Scalpel: Invalid syntax generated, discarding.", vim.log.levels.WARN)
+        callback(nil, "Invalid syntax")
+      end
+    end)
+  end))
 end
 
 return M

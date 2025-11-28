@@ -34,7 +34,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let state = Arc::new(AppState {
         llama_url: format!("{}/completion", llama_url),
         client: reqwest::Client::new(),
-        model_type: extract_model_type(&config.model_path)
+        model_type: extract_model_type(&config.model_path),
+        max_context: config.max_context,
+        max_predict: config.max_predict,
     });
 
     // Create app with endpoint routes

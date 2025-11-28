@@ -16,6 +16,7 @@ M.options = {}
 
 function M.setup(opts)
 	M.options = vim.tbl_deep_extend("force", M.defaults, opts or {})
+    M.options.server_url = "http://127.0.0.1:" .. M.options.port
 end
 
 return M

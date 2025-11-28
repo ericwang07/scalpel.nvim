@@ -1,7 +1,8 @@
 use std::path::Path;
 use crate::types::ModelType;
 
-pub const N_PREDICT: i8 = 10;
+
+
 
 pub fn stop_tokens() -> Vec<String> {
     ["(", ")", "[", "]", "{", "}", ",", ":", ";", ".", 
@@ -34,4 +35,6 @@ pub fn extract_model_type(path_str: &str) -> ModelType {
     }
     ModelType::Unknown
 }
+
+
 

@@ -43,6 +43,16 @@ function M.setup(opts)
       server.stop()
     end,
   })
+
+  -- Auto-start on startup
+  server.start()
+
+end
+
+-- Register nvim-cmp source immediately if cmp is loaded
+local has_cmp, cmp = pcall(require, "cmp")
+if has_cmp then
+  cmp.register_source("scalpel", require("scalpel.cmp").new())
 end
 
 function M.trigger_completion()
@@ -68,10 +78,11 @@ function M.trigger_completion()
   
   local prefix = table.concat(prefix_lines, "\n")
   local suffix = table.concat(suffix_lines, "\n")
+  local filetype = vim.bo[buf].filetype
 
-  vim.notify("Requesting completion...", vim.log.levels.INFO)
 
-  client.complete(prefix, suffix, function(res, err)
+
+  client.complete(prefix, suffix, filetype, function(res, err)
     if err then
       vim.schedule(function()
         vim.notify("Completion failed: " .. err, vim.log.levels.ERROR)
@@ -82,11 +93,12 @@ function M.trigger_completion()
     if res and res.completion then
       vim.schedule(function()
         -- Print prompt and completion to messages
-        local msg = string.format(
-          "--- PROMPT ---\n%s<CURSOR>%s\n\n--- COMPLETION ---\n%s",
-          prefix, suffix, res.completion
-        )
-        vim.notify(msg, vim.log.levels.INFO)
+        -- local msg = string.format(
+        --   "--- PROMPT ---\n%s<CURSOR>%s\n\n--- COMPLETION ---\n%s",
+        --   prefix, suffix, res.completion
+        -- )
+        -- vim.notify(msg, vim.log.levels.INFO)
+        vim.notify("Scalpel Completion: " .. res.completion, vim.log.levels.INFO)
       end)
     end
   end)

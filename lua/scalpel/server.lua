@@ -37,25 +37,22 @@ function M.start()
 	local job_opts = {
 		env = {
 			SCALPEL_PORT = tostring(config.options.port),
-			-- Inherit other env vars if needed, or let vim.fn.jobstart handle it (it inherits by default)
 		},
 		detach = false,
 		on_stdout = function(_, data)
 			if data then
-				-- Log stdout if needed
 				for _, line in ipairs(data) do
 					if line ~= "" then
-						print("[Scalpel] " .. line)
+						-- print("[Scalpel] " .. line)
 					end
 				end
 			end
 		end,
 		on_stderr = function(_, data)
 			if data then 
-				-- Log stdout if needed
 				for _, line in ipairs(data) do
 					if line ~= "" then
-						print("[Scalpel] " .. line)
+						-- print("[Scalpel] " .. line)
 					end
 				end
 			end
