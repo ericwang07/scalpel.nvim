@@ -18,12 +18,10 @@ pub async fn handle_complete(
     let start = std::time::Instant::now();
 
     // 1. Tokenize prefix and suffix
-    let base_url = state.llama_url.replace("/completion", ""); // hack to get base url
-    
-    let prefix_tokens = tokenize(&state.client, &base_url, &request.prefix).await
+    let prefix_tokens = tokenize(&state.client, &state.llama_url, &request.prefix).await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, Json(ErrorResponse { error: format!("Tokenization failed: {}", e) })))?;
         
-    let suffix_tokens = tokenize(&state.client, &base_url, &request.suffix).await
+    let suffix_tokens = tokenize(&state.client, &state.llama_url, &request.suffix).await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, Json(ErrorResponse { error: format!("Tokenization failed: {}", e) })))?;
 
     // 2. Calculate budget
@@ -52,10 +50,10 @@ pub async fn handle_complete(
         };
         
         // Detokenize back to string
-        let p = detokenize(&state.client, &base_url, trunc_prefix_tokens).await
+        let p = detokenize(&state.client, &state.llama_url, trunc_prefix_tokens).await
              .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, Json(ErrorResponse { error: format!("Detokenization failed: {}", e) })))?;
              
-        let s = detokenize(&state.client, &base_url, trunc_suffix_tokens).await
+        let s = detokenize(&state.client, &state.llama_url, trunc_suffix_tokens).await
              .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, Json(ErrorResponse { error: format!("Detokenization failed: {}", e) })))?;
              
         (p, s)
@@ -73,8 +71,9 @@ pub async fn handle_complete(
         seed: 42,
     }; 
 
+    let completion_url = format!("{}/completion", state.llama_url);
     let response = state.client
-        .post(&state.llama_url)
+        .post(&completion_url)
         .json(&llama_req)
         .send()
         .await
@@ -98,7 +97,12 @@ pub async fn handle_complete(
     }))
 }
 
-pub async fn health_check() -> &'static str {
-    "OK"
+
+pub async fn health_check(State(state): State<Arc<AppState>>) -> Result<&'static str, (StatusCode, &'static str)> {
+    // Verify llama-server is responding by testing tokenization
+    match tokenize(&state.client, &state.llama_url, "test").await {
+        Ok(_) => Ok("OK"),
+        Err(_) => Err((StatusCode::SERVICE_UNAVAILABLE, "llama-server not ready")),
+    }
 }
 

@@ -32,7 +32,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Set up state
     let state = Arc::new(AppState {
-        llama_url: format!("{}/completion", llama_url),
+        llama_url: llama_url,  // Store base URL
         client: reqwest::Client::new(),
         model_type: extract_model_type(&config.model_path),
         max_context: config.max_context,
