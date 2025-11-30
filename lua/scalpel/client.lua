@@ -1,9 +1,36 @@
+--[[
+Scalpel HTTP Client
+====================
+
+This module handles all HTTP communication with the local Scalpel AI server.
+It provides a thin wrapper around plenary.curl for making JSON requests.
+
+Main Functions:
+  - request(method, endpoint, body, callback)
+    Generic HTTP request wrapper with JSON encoding/decoding
+  
+  - complete(prefix, suffix, filetype, callback)
+    Request a code completion from the AI server
+    Callback signature: function(response, error)
+      - response: { completion: string, ... }
+      - error: string | nil
+
+Architecture Notes:
+  - No debouncing here - that's handled by fetcher.lua
+  - Errors are silently ignored to avoid spamming the user
+  - All callbacks are wrapped in vim.schedule for thread safety
+--]]
+
 local config = require("scalpel.config")
 local curl = require("plenary.curl")
-local validator = require("scalpel.validator")
+
 local M = {}
 
--- Simple curl wrapper
+--- Makes an HTTP request to the Scalpel server
+--- @param method string HTTP method (e.g., "POST", "GET")
+--- @param endpoint string API endpoint (e.g., "/complete")
+--- @param body table Request body (will be JSON encoded)
+--- @param callback function Callback(response, error)
 function M.request(method, endpoint, body, callback)
   local url = config.options.server_url .. endpoint
   
@@ -15,15 +42,19 @@ function M.request(method, endpoint, body, callback)
       ["Content-Type"] = "application/json",
     },
     callback = vim.schedule_wrap(function(response)
+      -- Non-200 responses are treated as errors
       if response.status ~= 200 then
-        -- vim.notify("Scalpel request failed: " .. response.body, vim.log.levels.ERROR)
-        if callback then callback(nil, "HTTP " .. response.status .. ": " .. response.body) end
+        if callback then 
+          callback(nil, "HTTP " .. response.status .. ": " .. response.body) 
+        end
         return
       end
 
+      -- Attempt to decode JSON response
       local ok, decoded = pcall(vim.fn.json_decode, response.body)
       if not ok then
-        if callback then callback(nil, "JSON decode error") end
+        -- Silently fail on decode errors to avoid spam
+        -- This handles transient issues like partial responses
         return
       end
 
@@ -34,45 +65,26 @@ function M.request(method, endpoint, body, callback)
   })
 end
 
-local debounce_timer = nil
-
+--- Requests a code completion from the AI server
+--- @param prefix string Code before cursor
+--- @param suffix string Code after cursor
+--- @param filetype string Neovim filetype (e.g., "lua", "python")
+--- @param callback function Callback(response, error) where response has { completion: string }
 function M.complete(prefix, suffix, filetype, callback)
-  -- Cancel previous timer if it exists
-  if debounce_timer then
-    debounce_timer:stop()
-    debounce_timer:close()
-    debounce_timer = nil
-  end
-
-  -- Create new timer
-  debounce_timer = vim.loop.new_timer()
-  debounce_timer:start(300, 0, vim.schedule_wrap(function()
-    debounce_timer:stop()
-    debounce_timer:close()
-    debounce_timer = nil
-
-    local body = {
-      prefix = prefix,
-      suffix = suffix,
-    }
-    
-    M.request("POST", "/complete", body, function(response, err)
-      if err then
-        callback(nil, err)
-        return
-      end
+  local body = {
+    prefix = prefix,
+    suffix = suffix,
+  }
   
-      local completion = response.completion
-      local full_code = prefix .. completion .. suffix
-      
-      if validator.validate(full_code, filetype) then
-        callback(response, nil)
-      else
-        -- vim.notify("Scalpel: Invalid syntax generated, discarding.", vim.log.levels.WARN)
-        callback(nil, "Invalid syntax")
-      end
-    end)
-  end))
+  M.request("POST", "/complete", body, function(response, err)
+    if err then
+      callback(nil, err)
+      return
+    end
+
+    -- response.completion contains the AI's predicted text
+    callback(response, nil)
+  end)
 end
 
 return M
