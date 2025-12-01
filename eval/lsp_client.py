@@ -6,7 +6,7 @@ import time
 import tempfile
 
 class LSPClient:
-    def __init__(self, cmd: List[str]):
+    def __init__(self, cmd: List[str], root_uri: str = None):
         """Start LSP server with given command (e.g., ['pylsp'])"""
         self.process = subprocess.Popen(
             cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, 
@@ -14,19 +14,26 @@ class LSPClient:
         )
         self.req_id = 0
         self.document_versions = {}
+        self.root_uri = root_uri
         time.sleep(0.1)  # Give server time to start
         self._init_lsp()
         
     def _init_lsp(self):
         """Initialize LSP connection"""
-        response = self._send_request("initialize", {
+        params = {
             "processId": os.getpid(),
             "capabilities": {
                 "textDocument": {
                     "completion": {"completionItem": {"snippetSupport": False}}
                 }
             }
-        })
+        }
+        
+        if self.root_uri:
+            params["rootUri"] = f"file://{self.root_uri}"
+            params["rootPath"] = self.root_uri
+            
+        response = self._send_request("initialize", params)
         
         if response:
             self._send_notification("initialized", {})
@@ -113,42 +120,30 @@ class LSPClient:
 
         return diagnostics
     
-    def get_valid_completions_at_position(self, file_path: str, position: int) -> set:
-        """Get valid completions at absolute position in file."""
-
+    def open_file(self, file_path: str, languageId: str = "python") -> str:
+        """Open a file in the LSP server and return its URI."""
         with open(file_path) as f:
             full_content = f.read()
         
-        before_cursor = full_content[:position]
-        line = before_cursor.count('\n')
-        col = len(before_cursor.split('\n')[-1])
+            uri = f"file://{os.path.abspath(file_path)}"
         
-        # Update LSP with full file content
-        uri = f"file://{os.path.abspath(file_path)}"
-
-        if uri not in self.document_versions:
-            self.document_versions[uri] = 1
-            self._send_notification("textDocument/didOpen", {
-            "textDocument": {
-                "uri": uri,
-                "languageId": "python",
-                "version": 1,
-                "text": full_content
-            }
-            })
-        else:
-            self.document_versions[uri] += 1
-            self._send_notification("textDocument/didChange", {
-                "textDocument": {
-                    "uri": uri,
-                    "version": self.document_versions[uri]
-                },
-                "contentChanges": [{"text": full_content}]
-            })
-
+            if uri not in self.document_versions:
+                self.document_versions[uri] = 1
+                self._send_notification("textDocument/didOpen", {
+                    "textDocument": {
+                        "uri": uri,
+                        "languageId": languageId,
+                        "version": 1,
+                        "text": full_content
+                    }
+                })
+        
+        # Give server a moment to process the file
         time.sleep(0.05)
+        return uri
 
-        # Request completions at cursor
+    def request_completion(self, uri: str, line: int, col: int) -> list:
+        """Request completions at a specific position without re-opening file."""
         response = self._send_request("textDocument/completion", {
             "textDocument": {"uri": uri},
             "position": {"line": line, "character": col}
@@ -158,6 +153,29 @@ class LSPClient:
             return []
         
         items = response.get("result", {}).get("items", [])
+        
+        completions = []
+        for item in items:
+            text = item.get('insertText') or item.get('label')
+            if text:
+                completions.append(text)
+                
+        return completions
+
+    def get_valid_completions_at_position(self, file_path: str, position: int) -> set:
+        """Legacy method: Get valid completions at absolute position in file."""
+        # This is the slow path that re-opens the file every time
+        # Kept for backward compatibility but SampleGenerator should use open_file + request_completion
+        uri = self.open_file(file_path)
+        
+        with open(file_path) as f:
+            full_content = f.read()
+            
+        before_cursor = full_content[:position]
+        line = before_cursor.count('\n')
+        col = len(before_cursor.split('\n')[-1])
+        
+        return self.request_completion(uri, line, col)
         sorted_items = sorted(items, key=lambda x: (x.get("sortText", x.get("label", "")), x.get("label", "")))
 
         completions = []
@@ -166,10 +184,6 @@ class LSPClient:
             text = item.get("insertText", item.get("label", ""))
             if text:
                 completions.append(text)
-        
-        print("LSP completion items:", items)
-        print('LSP completions:', completions)
-
         
         return completions
     

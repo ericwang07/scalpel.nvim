@@ -5,10 +5,11 @@ from datetime import datetime
 from pathlib import Path
 
 class CompletionEvaluator:
-    def __init__(self, model: 'LocalCodeModel', lsp: 'LSPClient', basedir: str):
+    def __init__(self, model: 'LocalCodeModel', lsp: 'LSPClient', basedir: str, context_window: str = "unknown"):
         self.model = model
         self.lsp = lsp
         self.basedir = basedir
+        self.context_window = context_window
     
     def _save_results(self, results, detailed_samples):
         """Create results directory and save data."""
@@ -19,7 +20,7 @@ class CompletionEvaluator:
         model_short = Path(results['model_path']).stem[:20]  # Get filename without extension
         n = results['n_samples']
         
-        folder_name = f"{timestamp}_{model_short}_n{n}"
+        folder_name = f"{timestamp}_{model_short}_ctx{self.context_window}_n{n}"
         save_dir = Path("results") / folder_name
         save_dir.mkdir(parents=True, exist_ok=True)
         
@@ -34,13 +35,19 @@ class CompletionEvaluator:
         
         return str(save_dir)
      
-    def evaluate_vs_baseline(self, samples, n: int, save_results: bool = False):
+    def evaluate_vs_baseline(self, samples, n: int = -1, save_results: bool = False):
         """
         Compare LSP baseline vs Scalpel (threshold=0).
         Evaluates exactly n samples with valid LSP completions.
         """
+        if n <= 0:
+            n = len(samples)
         if len(samples) < n:
             raise ValueError(f"Not enough samples. Need {n}, have {len(samples)}")
+            
+        # Sort samples by file to maximize prompt caching
+        # (Processing same file sequentially allows server to reuse KV cache)
+        samples.sort(key=lambda x: x['file'])
         
         n_correct_lsp = 0
         n_correct_scalpel = 0
@@ -63,21 +70,16 @@ class CompletionEvaluator:
             code_before = sample['code_before']
             code_after = sample['code_after']
             label = sample['target_token']
-            file_path = os.path.join(self.basedir, sample['file'])
-            position = sample['target_start_pos']
+            lsp_position = sample['lsp_position']
             
-            print(f"\n--- Sample {n_total+1}/{n} (raw index: {sample_idx}) ---")
-            print(f"From file: {sample['file']}")
-            print(f"Expected: {label}")
+            # Use pre-stored LSP completion from sample (deterministic, no re-querying needed)
+            lsp_prediction = sample['lsp_completion']
             
-            # Get LSP baseline top-1
-            lsp_completions = self.lsp.get_valid_completions_at_position(file_path, position)
-            if not lsp_completions:
-                print("No LSP completions available, skipping to next sample")
-                continue  # Don't increment n_total, just move to next sample
-            
-            lsp_prediction = lsp_completions[0]
-            print(f"LSP prediction: {lsp_prediction}")
+            print(f"\n{'='*70}")
+            print(f"Sample {n_total + 1}/{n}")
+            print(f"File: {sample['file']}")
+            print(f"Target: {label}")
+            print(f"LSP prediction (pre-stored): {lsp_prediction}")
             
             # Get Scalpel prediction (RAW - no filtering)
             start_time = time.perf_counter()
@@ -120,7 +122,7 @@ class CompletionEvaluator:
                     'file': sample['file'],
                     'trigger_token': sample.get('trigger_token', ''),
                     'target_token': label,
-                    'target_position': position,
+                    'target_position': sample['lsp_position'],
                     'lsp_prediction': lsp_prediction,
                     'lsp_correct': lsp_correct,
                     'scalpel_prediction': scalpel_prediction,
@@ -135,10 +137,16 @@ class CompletionEvaluator:
         eval_end_time = time.time()
 
         # Results - now guaranteed n_total == n (or we ran out of samples)
-        lsp_accuracy = n_correct_lsp / n_total
-        scalpel_accuracy = n_correct_scalpel / n_total
-        improvement = scalpel_accuracy - lsp_accuracy
-        avg_latency_ms = total_latency_ms / n_total
+        if n_total > 0:
+            lsp_accuracy = n_correct_lsp / n_total
+            scalpel_accuracy = n_correct_scalpel / n_total
+            improvement = scalpel_accuracy - lsp_accuracy
+            avg_latency_ms = total_latency_ms / n_total
+        else:
+            lsp_accuracy = 0.0
+            scalpel_accuracy = 0.0
+            improvement = 0.0
+            avg_latency_ms = 0.0
         
         print(f"\n{'='*60}")
         print(f"RESULTS (n={n_total} samples)")
@@ -158,6 +166,7 @@ class CompletionEvaluator:
             'scalpel_accuracy': scalpel_accuracy,
             'improvement': improvement,
             'avg_latency_ms': avg_latency_ms, 
+            'context_window': self.context_window,
         }
 
         if save_results:

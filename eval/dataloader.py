@@ -4,13 +4,26 @@ from tokenize import tokenize, ENCODING, ENDMARKER, COMMENT
 from io import BytesIO
 
 class DataLoader:
-    def __init__(self, basedir, infile, outfile):
+    def __init__(self, basedir, infile, outfile, language):
         self.basedir = basedir
         self.infile = infile
         self.outfile = outfile
         self.tokens = []
-    
+        self.language = language
+
     def tokenize_data(self):
+        if self.language == "python":
+            return self.tokenize_data_python()
+        elif self.language == "java":
+            return self.tokenize_data_java()
+        else:
+            raise ValueError(f"Unsupported language: {self.language}")
+
+    def tokenize_data_java(self): 
+        
+        pass
+
+    def tokenize_data_python(self):
         file_paths = open(os.path.join(self.basedir, self.infile)).readlines()
         files_with_tokens = []
         for ct, path in enumerate(file_paths):
@@ -39,8 +52,6 @@ class DataLoader:
                         'type': toknum
                     })
 
-                    # print(f"tokval: {tokval}, from_pos: {code[char_pos:char_pos+len(tokval)]}")
-                
                 files_with_tokens.append({
                     'file': path.strip(),
                     'token_count': len(file_tokens),

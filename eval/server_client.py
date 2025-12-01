@@ -8,16 +8,21 @@ import time
 from typing import Optional
 
 class ScalpelServerClient:
-    def __init__(self, server_url: str = "http://localhost:3000"):
+    def __init__(self, server_url: str = "http://localhost:3000", model_path: str = None):
         """
         Initialize client for Scalpel Rust server.
         
         Args:
             server_url: Base URL of the Rust server (default: http://localhost:3000)
+            model_path: Path to model (optional, for logging)
         """
         self.server_url = server_url.rstrip('/')
-        self.model_path = "Scalpel Rust Server"  # For compatibility with results
+        self.model_path = model_path or "Scalpel Rust Server"
         
+    def health_check(self) -> bool:
+        """Check if server is running (alias for ping)."""
+        return self.ping()
+
     def ping(self) -> bool:
         """Check if server is running."""
         try:
