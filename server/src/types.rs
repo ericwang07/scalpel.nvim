@@ -7,6 +7,7 @@ pub enum ModelType {
     Unknown
 }
 
+#[derive(Debug)]
 pub struct Config {
     pub model_path: String,
     pub llama_binary: String,
