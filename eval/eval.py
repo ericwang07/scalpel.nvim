@@ -50,7 +50,34 @@ def kill_process_on_port(port):
     except Exception as e:
         print(f"  Error killing process on port {port}: {e}")
 
-def start_server(context_window="1024"):
+def kill_process_by_name(name):
+    """Kill processes matching the given name."""
+    try:
+        # Use pkill to find and kill processes
+        print(f"  Killing process with name {name}...")
+        subprocess.run(["pkill", "-f", name], check=False, stderr=subprocess.DEVNULL)
+    except Exception as e:
+        print(f"  Error killing process {name}: {e}")
+
+def wait_for_port_release(port, timeout=10):
+    """Wait until a port is free."""
+    start = time.time()
+    while time.time() - start < timeout:
+        try:
+            # Try to connect to the port
+            requests.get(f"http://localhost:{port}", timeout=0.5)
+            # If we connect, it's still alive
+            time.sleep(0.5)
+            print(".", end="", flush=True)
+        except requests.exceptions.ConnectionError:
+            # Connection refused means port is free!
+            return True
+        except:
+            # Other errors might mean it's free or weird state
+            time.sleep(0.5)
+    return False
+
+def start_server(context_window="1024", model_path=None):
     """Start the Rust server and wait for it to be ready."""
     global server_process
     
@@ -58,15 +85,35 @@ def start_server(context_window="1024"):
     
     # Always start fresh to ensure correct context window
     print("  Killing old processes...")
+    
+    # 1. Kill by Port
     kill_process_on_port(3000)  # Kill Rust server
     kill_process_on_port(8081)  # Kill llama-server
-    time.sleep(1)
+    
+    # 2. Kill by Name (Aggressive backup)
+    kill_process_by_name("llama-server")
+    # kill_process_by_name("scalpel") # RISKY: Matches user sessions
+    kill_process_by_name("jdtls") # Kill Java LSP
+    
+    # 3. Wait for ports to be free
+    print("  Waiting for ports to release...", end="", flush=True)
+    if not wait_for_port_release(3000) or not wait_for_port_release(8081):
+        print("\n❌ Ports 3000 or 8081 are still in use! Cannot start server.")
+        # Try one last desperate kill
+        os.system("pkill -9 -f llama-server")
+        # os.system("pkill -9 -f scalpel")
+        time.sleep(2)
+    else:
+        print(" Done.")
     
     print("  Starting fresh server...")
     
     # Set up environment variables for Rust server
     env = os.environ.copy()
-    env["SCALPEL_MODEL_PATH"] = os.path.abspath(MODEL_PATH)
+    
+    # Use provided model path or fallback to global default
+    target_model = model_path if model_path else MODEL_PATH
+    env["SCALPEL_MODEL_PATH"] = os.path.abspath(target_model)
     env["SCALPEL_PORT"] = "3000"
     env["SCALPEL_LLAMA_PORT"] = "8081"
     
@@ -82,7 +129,9 @@ def start_server(context_window="1024"):
     print(f"  GPU Layers: {env['SCALPEL_GPU_LAYERS']}")
     
     # Start server process
-    server_dir = os.path.abspath("../server")
+    # Robustly find server directory relative to this script
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    server_dir = os.path.abspath(os.path.join(script_dir, "../server"))
     print(f"  Running cargo run in {server_dir}...")
     server_process = subprocess.Popen(
         ["cargo", "run", "--release"],
@@ -179,13 +228,15 @@ def main():
     parser.add_argument("--lang", type=str, default="python", choices=["python", "java"], help="Language to evaluate")
     parser.add_argument("--context-window", type=str, default="512", help="Context window size (e.g. 512, 1024)")
     parser.add_argument("--n-samples", type=int, default=-1, help="Number of samples to evaluate (-1 for all)")
+    parser.add_argument("--model-path", type=str, default=None, help="Path to the model file")
+    parser.add_argument("--session-id", type=str, default=None, help="Session ID for grouping results")
     args = parser.parse_args()
     
     config = CONFIGS[args.lang]
     print(f"Starting evaluation for {args.lang}...")
     
     # 0. Start Server (if needed)
-    start_server(args.context_window)
+    start_server(args.context_window, args.model_path)
 
     # 1. Initialize LSP Client
     print(f"🚀 Initializing LSP Client for {args.lang}...")
@@ -211,13 +262,14 @@ def main():
     generator = SampleGenerator(
         basedir=config["base_dir"], 
         samples_file=config["samples_file"],
+        language_id=config["language_id"],
     )
     samples = generator.get_samples(data, lsp_client, regenerate=False)
     
     # 4. Initialize Model Client (Scalpel Server)
     print("🤖 Connecting to Scalpel Server...")
     model = ScalpelServerClient(
-        model_path=os.environ.get("SCALPEL_MODEL_PATH")
+        model_path=args.model_path if args.model_path else os.environ.get("SCALPEL_MODEL_PATH")
     )
     
     # 5. Evaluate
@@ -226,7 +278,9 @@ def main():
         model=model,
         lsp=lsp_client,
         basedir=config["base_dir"],
-        context_window=args.context_window
+        language=args.lang,
+        context_window=args.context_window,
+        session_id=args.session_id
     )
 
     # Evaluate all samples

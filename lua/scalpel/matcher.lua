@@ -38,7 +38,7 @@ function M.score(candidate, prediction)
   if candidate == prediction then return 3 end
   
   -- Prefix/Suffix match (requires >= 3 chars to avoid noise)
-  if #prediction > 2 and #candidate > 2 then
+  if #prediction > 3 and #candidate > 3 then
     if vim.startswith(candidate, prediction) or vim.startswith(prediction, candidate) then
       return 2
     end

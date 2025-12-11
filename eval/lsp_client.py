@@ -10,7 +10,7 @@ class LSPClient:
         """Start LSP server with given command (e.g., ['pylsp'])"""
         self.process = subprocess.Popen(
             cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, 
-            stderr=subprocess.DEVNULL, text=True, bufsize=0
+            stderr=subprocess.PIPE, text=True, bufsize=0
         )
         self.req_id = 0
         self.document_versions = {}
@@ -89,13 +89,17 @@ class LSPClient:
         self.process.stdin.flush()
         
         # Read messages until we get our response
-        for _ in range(10):  # Max 10 attempts
+        while True:
             message = self._read_message()
-            if message and message.get("id") == request_id:
+            if not message:
+                return None
+                
+            if message.get("id") == request_id:
                 return message
-            time.sleep(0.01)  # Small delay
-        
-        return None
+            
+            # If it's not our response, it's likely a notification (e.g. window/logMessage)
+            # We ignore it and keep waiting for our response.
+            # (In a real async client we would handle it, but here we just want the response)
     
     def _collect_diagnostics(self, uri: str, timeout: float = 1.0) -> list:
         """Collect diagnostics for a given file URI (from publishDiagnostics)."""
@@ -142,6 +146,14 @@ class LSPClient:
         time.sleep(0.05)
         return uri
 
+    def close_file(self, uri: str):
+        """Close a file in the LSP server."""
+        if uri in self.document_versions:
+            del self.document_versions[uri]
+            self._send_notification("textDocument/didClose", {
+                "textDocument": {"uri": uri}
+            })
+
     def request_completion(self, uri: str, line: int, col: int) -> list:
         """Request completions at a specific position without re-opening file."""
         response = self._send_request("textDocument/completion", {
@@ -150,6 +162,7 @@ class LSPClient:
         })
     
         if not response or "result" not in response:
+            print(f"DEBUG: No result in response: {response}")
             return []
         
         items = response.get("result", {}).get("items", [])
@@ -162,30 +175,30 @@ class LSPClient:
                 
         return completions
 
-    def get_valid_completions_at_position(self, file_path: str, position: int) -> set:
-        """Legacy method: Get valid completions at absolute position in file."""
-        # This is the slow path that re-opens the file every time
-        # Kept for backward compatibility but SampleGenerator should use open_file + request_completion
-        uri = self.open_file(file_path)
+    # def get_valid_completions_at_position(self, file_path: str, position: int) -> set:
+    #     """Legacy method: Get valid completions at absolute position in file."""
+    #     # This is the slow path that re-opens the file every time
+    #     # Kept for backward compatibility but SampleGenerator should use open_file + request_completion
+    #     uri = self.open_file(file_path)
         
-        with open(file_path) as f:
-            full_content = f.read()
+    #     with open(file_path) as f:
+    #         full_content = f.read()
             
-        before_cursor = full_content[:position]
-        line = before_cursor.count('\n')
-        col = len(before_cursor.split('\n')[-1])
+    #     before_cursor = full_content[:position]
+    #     line = before_cursor.count('\n')
+    #     col = len(before_cursor.split('\n')[-1])
         
-        return self.request_completion(uri, line, col)
-        sorted_items = sorted(items, key=lambda x: (x.get("sortText", x.get("label", "")), x.get("label", "")))
+    #     return self.request_completion(uri, line, col)
+    #     sorted_items = sorted(items, key=lambda x: (x.get("sortText", x.get("label", "")), x.get("label", "")))
 
-        completions = []
-        for item in sorted_items:
-            # insertText is preferred, fall back to label
-            text = item.get("insertText", item.get("label", ""))
-            if text:
-                completions.append(text)
+    #     completions = []
+    #     for item in sorted_items:
+    #         # insertText is preferred, fall back to label
+    #         text = item.get("insertText", item.get("label", ""))
+    #         if text:
+    #             completions.append(text)
         
-        return completions
+    #     return completions
     
     def validate_code(self, code: str) -> bool:        
         

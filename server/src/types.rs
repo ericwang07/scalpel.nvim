@@ -46,6 +46,7 @@ pub struct LlamaRequest {
     pub stop: Vec<String>,
     pub temperature: f32,
     pub seed: u32,
+    pub cache_prompt: bool,
 }
 
 #[derive(Deserialize, Debug)]

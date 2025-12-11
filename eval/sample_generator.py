@@ -60,9 +60,27 @@ class SampleGenerator:
             
             # Check all positions sequentially (no trigger filtering)
             file_samples = []
-            for target_idx in range(1, len(tokens) - 1):
-                if target_idx % 500 == 0:
-                    print(f"    Checking token {target_idx}/{len(tokens)} | Found {len(file_samples)} samples...", end='\r')
+            # Identify candidate indices first
+            candidate_indices = []
+            for i in range(1, len(tokens) - 1):
+                token = tokens[i]['value']
+                # Filter targets: Only allow identifiers and keywords
+                if re.match(r'^[a-zA-Z_]\w*$', token):
+                    candidate_indices.append(i)
+            
+            # Shuffle candidates to sample randomly
+            random.shuffle(candidate_indices)
+            
+            file_samples = []
+            
+            # Check candidates until we have enough samples
+            for i, target_idx in enumerate(candidate_indices):
+                # Stop if we have enough samples for this file
+                if self.max_samples_per_file and len(file_samples) >= self.max_samples_per_file:
+                    break
+                    
+                if i % 10 == 0:
+                    print(f"    Checking candidate {i}/{len(candidate_indices)} | Found {len(file_samples)} samples...", end='\r')
                 total_positions_checked += 1
                 
                 # Target token
@@ -77,13 +95,7 @@ class SampleGenerator:
                 # Get context after (full suffix)
                 # MUST skip the target token itself, otherwise the answer is in the suffix!
                 code_after = code[target_start_pos + len(target_token):]
-                
-                # Filter targets: Only allow identifiers and keywords
-                # Must start with letter/underscore and contain only word characters
-                # This excludes punctuation like '.', '(', '=', etc.
-                if not re.match(r'^[a-zA-Z_]\w*$', target_token):
-                    continue
-                
+                 
                 # Trigger token (previous token)
                 trigger_token = tokens[target_idx-1]['value'] if target_idx > 0 else ""
                 
@@ -117,13 +129,13 @@ class SampleGenerator:
                     'lsp_count': len(lsp_completions)  # Number of LSP suggestions
                 })
             
-            # Add file samples
-            # If we have too many, randomly select K but keep them sorted by position
-            if self.max_samples_per_file and len(file_samples) > self.max_samples_per_file:
-                file_samples = sorted(random.sample(file_samples, self.max_samples_per_file), 
-                                   key=lambda x: x['lsp_position'])
+            # Add file samples (sorted by position)
+            file_samples.sort(key=lambda x: x['lsp_position'])
             
             samples.extend(file_samples)
+            
+            # Close file to free resources (CRITICAL for jdtls)
+            lsp_client.close_file(uri)
             
             if files_processed % 10 == 0:
                 print(f"  Processed {files_processed}/{len(file_list)} files, {len(samples)} samples so far...")

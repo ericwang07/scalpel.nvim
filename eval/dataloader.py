@@ -2,6 +2,8 @@ import os
 import json
 from tokenize import tokenize, ENCODING, ENDMARKER, COMMENT
 from io import BytesIO
+import javalang
+import random
 
 class DataLoader:
     def __init__(self, basedir, infile, outfile, language):
@@ -20,8 +22,57 @@ class DataLoader:
             raise ValueError(f"Unsupported language: {self.language}")
 
     def tokenize_data_java(self): 
+        # Create source directory for Java files
+        source_dir = os.path.join(self.basedir, "source")
+        os.makedirs(source_dir, exist_ok=True)
         
-        pass
+        code_samples = open(os.path.join(self.basedir, self.infile)).readlines()
+        # Sample 100 files to match Python
+        selected_code_samples = random.sample(code_samples, 100)
+        
+        files_with_tokens = []
+        
+        for i, content in enumerate(selected_code_samples):
+            # Clean content: remove <s> and </s> tags
+            content = content.strip()
+            if content.startswith("<s>"):
+                content = content[3:]
+            if content.endswith("</s>"):
+                content = content[:-4]
+            content = content.strip()
+            
+            # Write to file so LSP can read it
+            filename = f"sample_{i}.java"
+            file_path = os.path.join(source_dir, filename)
+            with open(file_path, 'w') as f:
+                f.write(content)
+                
+            # Tokenize using javalang
+            try:
+                tokens = list(javalang.tokenizer.tokenize(content))
+            except Exception as e:
+                print(f"Error tokenizing sample {i}: {e}")
+                continue
+                
+            file_tokens = []
+            for tok in tokens:
+                # javalang position is (line, col) 1-indexed
+                # Since content is single line, start_pos is col - 1
+                start_pos = tok.position.column - 1
+                
+                file_tokens.append({
+                    'value': tok.value,
+                    'start_pos': start_pos,
+                    'type': type(tok).__name__
+                })
+                
+            files_with_tokens.append({
+                'file': os.path.join("source", filename),
+                'token_count': len(file_tokens),
+                'tokens': file_tokens
+            })
+            
+        return files_with_tokens 
 
     def tokenize_data_python(self):
         file_paths = open(os.path.join(self.basedir, self.infile)).readlines()

@@ -13,6 +13,7 @@ use crate::llama::{start_llama_process, wait_for_server};
 use crate::model::extract_model_type;
 use crate::types::{AppState, Config};
 
+
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Load configuration
@@ -22,6 +23,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         eprintln!("Optional: SCALPEL_LLAMA_BINARY, SCALPEL_PORT");
         e
     })?;
+    println!("Config: {:?}", config);
+    println!("LLama port: {}", config.llama_port);
+    println!("Model path: {}", config.model_path);
+    println!("Max context: {}", config.max_context);
+    println!("Max predict: {}", config.max_predict);
+    println!("Server port: {}", config.server_port);
 
     // Start llama server
     let mut llama_process = start_llama_process(&config).await?;

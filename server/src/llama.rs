@@ -15,8 +15,9 @@ pub async fn start_llama_process(config: &Config) -> Result<Child, std::io::Erro
         .arg(config.threads.to_string())
         .arg("--ctx-size")
         .arg(config.max_context.to_string())
-        .stdout(std::process::Stdio::null())
-        .stderr(std::process::Stdio::null())
+        .arg("--mlock")
+        .stdout(std::process::Stdio::inherit())
+        .stderr(std::process::Stdio::inherit())
         .spawn()
 }
 

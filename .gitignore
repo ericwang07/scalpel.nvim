@@ -1,1 +1,10 @@
-data/py150_files
+/*
+
+# Re-include specific files in the root directory
+!/eval/
+!/server/
+!/lua/
+!/README.md
+
+# Re-include the desired directory (and all its contents)
+!/src

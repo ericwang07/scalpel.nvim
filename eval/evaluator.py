@@ -5,11 +5,13 @@ from datetime import datetime
 from pathlib import Path
 
 class CompletionEvaluator:
-    def __init__(self, model: 'LocalCodeModel', lsp: 'LSPClient', basedir: str, context_window: str = "unknown"):
+    def __init__(self, model: 'LocalCodeModel', lsp: 'LSPClient', basedir: str, language: str, context_window: str = "unknown", session_id: str = None):
         self.model = model
         self.lsp = lsp
         self.basedir = basedir
+        self.language = language
         self.context_window = context_window
+        self.session_id = session_id
     
     def _save_results(self, results, detailed_samples):
         """Create results directory and save data."""
@@ -20,8 +22,13 @@ class CompletionEvaluator:
         model_short = Path(results['model_path']).stem[:20]  # Get filename without extension
         n = results['n_samples']
         
-        folder_name = f"{timestamp}_{model_short}_ctx{self.context_window}_n{n}"
-        save_dir = Path("results") / folder_name
+        folder_name = f"{timestamp}_{model_short}_{self.language}_ctx{self.context_window}_n{n}"
+        
+        if self.session_id:
+            save_dir = Path("results") / self.session_id / folder_name
+        else:
+            save_dir = Path("results") / folder_name
+            
         save_dir.mkdir(parents=True, exist_ok=True)
         
         # Save summary results
@@ -45,9 +52,9 @@ class CompletionEvaluator:
         if len(samples) < n:
             raise ValueError(f"Not enough samples. Need {n}, have {len(samples)}")
             
-        # Sort samples by file to maximize prompt caching
+        # Sort samples by file AND position to maximize prompt caching
         # (Processing same file sequentially allows server to reuse KV cache)
-        samples.sort(key=lambda x: x['file'])
+        samples.sort(key=lambda x: (x['file'], x['lsp_position']))
         
         n_correct_lsp = 0
         n_correct_scalpel = 0
@@ -97,9 +104,10 @@ class CompletionEvaluator:
                 used_llm = True
                 print(f"Scalpel prediction: {scalpel_prediction} (from LLM)")
             else:
-                scalpel_prediction = lsp_prediction
+                # No fallback - evaluating pure model performance
+                scalpel_prediction = "" 
                 used_llm = False
-                print(f"Scalpel prediction: {scalpel_prediction} (fallback to LSP)")
+                print(f"Scalpel prediction: [EMPTY] (No generation)")
 
             print(f"Latency: {latency_ms:.1f}ms")
 
@@ -167,6 +175,7 @@ class CompletionEvaluator:
             'improvement': improvement,
             'avg_latency_ms': avg_latency_ms, 
             'context_window': self.context_window,
+            'language': self.language,
         }
 
         if save_results:
