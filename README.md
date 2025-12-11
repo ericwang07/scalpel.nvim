@@ -1,5 +1,9 @@
 # Scalpel
 
+[![Release](https://img.shields.io/github/v/release/ericwang07/scalpel.nvim?style=flat-square)](https://github.com/ericwang07/scalpel.nvim/releases)
+[![Build](https://img.shields.io/github/actions/workflow/status/ericwang07/scalpel.nvim/release.yml?style=flat-square)](https://github.com/ericwang07/scalpel.nvim/actions)
+[![License](https://img.shields.io/github/license/ericwang07/scalpel.nvim?style=flat-square)](LICENSE)
+
 **AI-powered code completion for Neovim with hybrid LSP boosting**
 
 Scalpel is a Neovim plugin that uses local AI models to predict code completions and intelligently boosts them in your LSP completion menu. Unlike traditional completion plugins that replace your LSP, Scalpel works *alongside* it, using fuzzy matching and smart ranking to surface AI predictions while keeping your existing LSP workflow intact.
@@ -21,11 +25,11 @@ Scalpel is a Neovim plugin that uses local AI models to predict code completions
 - **[plenary.nvim](https://github.com/nvim-lua/plenary.nvim)** - Lua utilities (for HTTP requests)
 
 ### AI Server
-- **Rust** >= 1.70 (if building from source)
-- **Python** >= 3.8 (for model inference)
-- **AI Model**: Compatible with any model that `llama.cpp` supports (e.g., CodeLlama, DeepSeek-Coder, Qwen-Coder)
+- **[llama.cpp](https://github.com/ggerganov/llama.cpp)** - The `llama-server` binary for model inference
+- **AI Model**: GGUF format model (e.g., Qwen2.5-Coder, CodeLlama, DeepSeek-Coder)
+- **Rust** >= 1.70 *(only if building server from source)*
 
-> **Note**: The server spawns `llama.cpp` as a subprocess for model inference.
+> **Note**: If using pre-built binaries, you only need `llama-server` and a model file. No Rust or Python required.
 
 ## 📦 Installation
 
@@ -35,7 +39,7 @@ Using [lazy.nvim](https://github.com/folke/lazy.nvim):
 
 ```lua
 {
-  "yourusername/scalpel.nvim",
+  "ericwang07/scalpel.nvim",
   dependencies = {
     "hrsh7th/nvim-cmp",
     "nvim-lua/plenary.nvim",
@@ -52,7 +56,7 @@ Using [packer.nvim](https://github.com/wbthomason/packer.nvim):
 
 ```lua
 use {
-  "yourusername/scalpel.nvim",
+  "ericwang07/scalpel.nvim",
   requires = {
     "hrsh7th/nvim-cmp",
     "nvim-lua/plenary.nvim",
@@ -67,7 +71,15 @@ use {
 
 ### 2. Build the AI Server
 
-#### Option A: Build from Source (Recommended)
+#### Option A: One-Line Install (Recommended)
+
+```bash
+curl -sSL https://raw.githubusercontent.com/ericwang07/scalpel.nvim/main/scripts/install.sh | bash
+```
+
+This downloads the binary and optionally a recommended model.
+
+#### Option B: Build from Source
 
 ```bash
 cd scalpel.nvim/server
@@ -76,20 +88,21 @@ cargo build --release
 
 The binary will be at `server/target/release/scalpel`. The plugin auto-detects this path.
 
-#### Option B: Download Pre-built Binary (Coming Soon)
+#### Option C: Download Pre-built Binary
 
 ```bash
-# Download the appropriate binary for your platform
-curl -LO https://github.com/yourusername/scalpel.nvim/releases/latest/download/scalpel-macos-arm64
+# macOS Apple Silicon
+curl -LO https://github.com/ericwang07/scalpel.nvim/releases/latest/download/scalpel-macos-arm64
+chmod +x scalpel-macos-arm64 && mv scalpel-macos-arm64 ~/.local/bin/scalpel
 
-# Make it executable
-chmod +x scalpel-macos-arm64
+# macOS Intel
+curl -LO https://github.com/ericwang07/scalpel.nvim/releases/latest/download/scalpel-macos-x86_64
 
-# Move to a permanent location
-mv scalpel-macos-arm64 ~/.local/bin/scalpel
+# Linux x86_64
+curl -LO https://github.com/ericwang07/scalpel.nvim/releases/latest/download/scalpel-linux-x86_64
 ```
 
-Then configure the plugin to use the binary:
+Then configure the plugin:
 
 ```lua
 require("scalpel").setup({
@@ -100,18 +113,28 @@ require("scalpel").setup({
 
 ### 3. Set Up the AI Model
 
-1. **Download a Model**
+#### Recommended Models
 
-Download a `llama.cpp`-compatible model (e.g., GGUF format):
+| Model | Size | Speed | Quality | Download |
+|-------|------|-------|---------|----------|
+| Qwen2.5-Coder-1.5B-Instruct (Q4_K_M) | ~1GB | ⚡ Fast | Good | [HuggingFace](https://huggingface.co/Qwen/Qwen2.5-Coder-1.5B-Instruct-GGUF) |
+| Qwen2.5-Coder-3B-Instruct (Q4_K_M) | ~2GB | Fast | Better | [HuggingFace](https://huggingface.co/Qwen/Qwen2.5-Coder-3B-Instruct-GGUF) |
+| Qwen2.5-Coder-7B-Instruct (Q4_K_M) | ~4.5GB | Moderate | Best | [HuggingFace](https://huggingface.co/Qwen/Qwen2.5-Coder-7B-Instruct-GGUF) |
 
 ```bash
-# Example: Download CodeLlama 7B (GGUF)
-mkdir -p models
-cd models
-wget https://huggingface.co/TheBloke/CodeLlama-7B-GGUF/resolve/main/codellama-7b.Q4_K_M.gguf
+# Download with huggingface-cli (recommended)
+pip install huggingface_hub
+huggingface-cli download Qwen/Qwen2.5-Coder-1.5B-Instruct-GGUF qwen2.5-coder-1.5b-instruct-q4_k_m.gguf --local-dir models
+
+# Or with curl
+mkdir -p models && cd models
+curl -LO https://huggingface.co/Qwen/Qwen2.5-Coder-1.5B-Instruct-GGUF/resolve/main/qwen2.5-coder-1.5b-instruct-q4_k_m.gguf
 ```
 
-2. **Set Environment Variables**
+
+
+
+#### Environment Variables
 
 The server expects these environment variables:
 
