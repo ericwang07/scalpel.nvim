@@ -8,6 +8,10 @@
 
 Scalpel is a Neovim plugin that uses local AI models to predict code completions and intelligently boosts them in your LSP completion menu. Unlike traditional completion plugins that replace your LSP, Scalpel works *alongside* it, using fuzzy matching and smart ranking to surface AI predictions while keeping your existing LSP workflow intact.
 
+
+https://github.com/user-attachments/assets/c54f77fa-b21a-4b86-a522-34b37c279745
+
+
 ## ✨ Features
 
 - **🚀 Hybrid Architecture**: Boosts LSP items with AI predictions rather than replacing them
