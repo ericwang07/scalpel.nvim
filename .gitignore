@@ -1,10 +1,26 @@
-/*
+# Ignore everything by default
+*
 
-# Re-include specific files in the root directory
-!/eval/
-!/server/
-!/lua/
+# Re-include specific directories
+!.gitignore
 !/README.md
 
-# Re-include the desired directory (and all its contents)
-!/src
+# Lua plugin
+!/lua/
+!/lua/**
+
+# Rust server
+!/server/
+!/server/**
+server/target/
+
+# Eval - include files, ignore subdirectories
+!/eval/
+!/eval/*
+eval/*/
+
+# Always ignore these
+models/
+*.DS_Store
+__pycache__/
+*.pyc
