@@ -20,8 +20,9 @@ Exit Codes:
 
 Binary Discovery:
   1. If config.binary_path is set, use that
-  2. Otherwise, look for server/target/release/scalpel relative to plugin root
-  3. If not found, show error (user needs to build the server first)
+  2. Otherwise, check if 'scalpel' is in PATH (for users who installed via curl)
+  3. Otherwise, look for server/target/release/scalpel relative to plugin root
+  4. If not found, show error
 --]]
 
 local config = require("scalpel.config")
@@ -39,16 +40,20 @@ local function get_binary_path()
   if config.options.binary_path then
     return config.options.binary_path
   end
-  
-  -- Auto-detect: Look in server/target/release/ relative to plugin root
-  -- debug.getinfo gets the current file path, then we go up 3 levels
+
+  -- Check PATH first (for users who installed via curl/package manager)
+  if vim.fn.executable("scalpel") == 1 then
+    return "scalpel"
+  end
+
+  -- Fallback: development setup (plugin directory)
   local plugin_root = vim.fn.fnamemodify(debug.getinfo(1, "S").source:sub(2), ":h:h:h")
   local bin_path = plugin_root .. "/server/target/release/scalpel"
-  
+
   if vim.fn.executable(bin_path) == 1 then
     return bin_path
   end
-  
+
   return nil
 end
 
@@ -97,7 +102,7 @@ function M.start()
     
     on_exit = function(_, code)
       M.job_id = nil
-      
+
       -- Handle restart flag
       if M.is_restarting then
         M.is_restarting = false
@@ -106,11 +111,16 @@ function M.start()
         end)
         return
       end
-      
+
       -- Exit code 143 is SIGTERM (expected when we call stop())
-      -- All other non-zero codes are unexpected
+      -- All other non-zero codes are unexpected crashes
       if code ~= 0 and code ~= 143 then
-        -- Silently fail - user can check via :ScalpelHealth if needed
+        vim.schedule(function()
+          vim.notify(
+            string.format("Scalpel server crashed (exit code %d). Run :ScalpelRestart to recover.", code),
+            vim.log.levels.WARN
+          )
+        end)
       end
     end,
   }

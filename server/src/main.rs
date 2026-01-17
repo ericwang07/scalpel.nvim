@@ -35,7 +35,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Wait for the server
     let llama_url = format!("http://localhost:{}", config.llama_port);
-    wait_for_server(&llama_url).await;
+    wait_for_server(&llama_url).await.map_err(|e| {
+        eprintln!("Error: {}", e);
+        eprintln!("Check that llama-server is installed and the model path is valid.");
+        e
+    })?;
 
     // Set up state
     let state = Arc::new(AppState {

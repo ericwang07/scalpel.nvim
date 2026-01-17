@@ -1,9 +1,15 @@
+use std::path::Path;
 use crate::types::Config;
 
 impl Config {
     pub fn from_env() -> Result<Self, String> {
         let model_path = std::env::var("SCALPEL_MODEL_PATH")
             .map_err(|_| "SCALPEL_MODEL_PATH not set")?;
+
+        // Validate model path exists
+        if !Path::new(&model_path).exists() {
+            return Err(format!("Model file not found: {}", model_path));
+        }
             
         // Internal defaults (not exposed to user)
         let llama_binary = "llama-server".to_string();
