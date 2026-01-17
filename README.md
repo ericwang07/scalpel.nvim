@@ -130,19 +130,11 @@ The plugin automatically finds `scalpel` in your PATH.
 
 | Model | Size | Speed | Quality | Download |
 |-------|------|-------|---------|----------|
-| Qwen2.5-Coder-1.5B-Instruct (Q4_K_M) | ~1GB | ⚡ Fast | Good | [HuggingFace](https://huggingface.co/Qwen/Qwen2.5-Coder-1.5B-Instruct-GGUF) |
-| Qwen2.5-Coder-3B-Instruct (Q4_K_M) | ~2GB | Fast | Better | [HuggingFace](https://huggingface.co/Qwen/Qwen2.5-Coder-3B-Instruct-GGUF) |
-| Qwen2.5-Coder-7B-Instruct (Q4_K_M) | ~4.5GB | Moderate | Best | [HuggingFace](https://huggingface.co/Qwen/Qwen2.5-Coder-7B-Instruct-GGUF) |
+| **Qwen2.5-Coder-3B-Instruct (Q4_K_M)** | ~2GB | ⚡ Fast | ★★☆ Great | [HuggingFace](https://huggingface.co/Qwen/Qwen2.5-Coder-3B-Instruct-GGUF) |
+| Qwen2.5-Coder-1.5B-Instruct (Q4_K_M) | ~1GB | ⚡⚡ Very Fast | ★☆☆ Basic | [HuggingFace](https://huggingface.co/Qwen/Qwen2.5-Coder-1.5B-Instruct-GGUF) |
+| Qwen2.5-Coder-7B-Instruct (Q4_K_M) | ~4.5GB | 🐢 Slow | ★★★ Best | [HuggingFace](https://huggingface.co/Qwen/Qwen2.5-Coder-7B-Instruct-GGUF) |
 
-```bash
-# Download with huggingface-cli (recommended)
-pip install huggingface_hub
-huggingface-cli download Qwen/Qwen2.5-Coder-1.5B-Instruct-GGUF qwen2.5-coder-1.5b-instruct-q4_k_m.gguf --local-dir models
-
-# Or with curl
-mkdir -p models && cd models
-curl -LO https://huggingface.co/Qwen/Qwen2.5-Coder-1.5B-Instruct-GGUF/resolve/main/qwen2.5-coder-1.5b-instruct-q4_k_m.gguf
-```
+The 3B model offers the best balance of speed and code completion quality for local use.
 
 
 
