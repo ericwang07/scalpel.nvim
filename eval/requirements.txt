@@ -1,8 +1,0 @@
-llama-cpp-python
-numpy
-javalang
-jdtls
-huggingface_hub
-matplotlib
-pandas
-adjustText
