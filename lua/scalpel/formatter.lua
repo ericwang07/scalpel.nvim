@@ -2,16 +2,16 @@
 Scalpel nvim-cmp Formatter
 ============================
 
-This formatter adds a visual indicator (⚡) to completion items that match
+This formatter adds a visual indicator () to completion items that match
 the AI's prediction, making it easy to see which items are "boosted".
 
 How It Works:
   1. Scores the completion item against the current prediction
-  2. If score > 0, appends " ⚡" to the kind field
-  3. If score = 0, appends "  " (padding) to maintain stable menu width
+  2. If score > 0, appends the icon to the kind field
+  3. If score = 0, appends padding to maintain stable menu width
 
 The padding is important to prevent the menu from "jumping" when the
-lightning bolt appears/disappears as you type.
+indicator appears/disappears as you type.
 
 Usage:
   Add to nvim-cmp formatting:
@@ -28,6 +28,8 @@ local state = require("scalpel.state")
 local matcher = require("scalpel.matcher")
 
 local M = {}
+
+M.ICON = ""
 
 --- Formats a completion item, adding visual indicator if it matches the prediction
 --- @param entry table nvim-cmp entry object
@@ -47,11 +49,10 @@ function M.format(entry, vim_item)
   
   if prediction and score > 0 then
     -- This item matches the AI prediction - mark it with lightning
-    vim_item.kind = (vim_item.kind or "") .. " ⚡"
+    vim_item.kind = (vim_item.kind or "") .. " " .. M.ICON
   else
     -- No match - add padding to keep menu width stable
-    -- The lightning bolt is ~2-3 chars wide, so "  " (two spaces) compensates
-    vim_item.kind = (vim_item.kind or "") .. "  "
+    vim_item.kind = (vim_item.kind or "") .. "   "
   end
 
   return vim_item
