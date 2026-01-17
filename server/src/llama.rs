@@ -21,18 +21,18 @@ pub async fn start_llama_process(config: &Config) -> Result<Child, std::io::Erro
         .spawn()
 }
 
-pub async fn wait_for_server(url: &str) {
+pub async fn wait_for_server(url: &str) -> Result<(), String> {
     let client = reqwest::Client::new();
     let health_url = format!("{}/health", url);
-    
+
     for _ in 1..=30 {
         tokio::time::sleep(Duration::from_millis(500)).await;
         if client.get(&health_url).send().await.is_ok() {
-            return;
+            return Ok(());
         }
     }
-    
-    panic!("llama.cpp failed to start");
+
+    Err("llama.cpp failed to start after 15 seconds".to_string())
 }
 
 pub async fn tokenize(client: &Client, base_url: &str, text: &str) -> Result<Vec<u32>, reqwest::Error> {

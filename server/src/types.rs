@@ -1,10 +1,14 @@
 use serde::{Serialize, Deserialize};
 use reqwest::Client;
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub enum ModelType {
     Qwen,
-    Unknown
+    // TODO: Add support for other models once FIM formats are verified
+    // CodeLlama,
+    // DeepSeek,
+    // StarCoder,
+    Unknown,
 }
 
 #[derive(Debug)]

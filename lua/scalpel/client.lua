@@ -53,8 +53,10 @@ function M.request(method, endpoint, body, callback)
       -- Attempt to decode JSON response
       local ok, decoded = pcall(vim.fn.json_decode, response.body)
       if not ok then
-        -- Silently fail on decode errors to avoid spam
-        -- This handles transient issues like partial responses
+        -- Call callback with error so callers can handle appropriately
+        if callback then
+          callback(nil, "JSON decode failed: " .. tostring(decoded))
+        end
         return
       end
 

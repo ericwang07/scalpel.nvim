@@ -45,8 +45,13 @@ Using [lazy.nvim](https://github.com/folke/lazy.nvim):
     "nvim-lua/plenary.nvim",
   },
   config = function()
-    require("scalpel").setup({
-      port = 3000,  -- Port for AI server (default: 3000)
+    require("scalpel").setup_cmp({
+      cmp_config = {
+        sources = {
+          { name = "nvim_lsp" },
+          { name = "buffer" },
+        },
+      },
     })
   end,
 }
@@ -62,8 +67,13 @@ use {
     "nvim-lua/plenary.nvim",
   },
   config = function()
-    require("scalpel").setup({
-      port = 3000,
+    require("scalpel").setup_cmp({
+      cmp_config = {
+        sources = {
+          { name = "nvim_lsp" },
+          { name = "buffer" },
+        },
+      },
     })
   end,
 }
@@ -97,19 +107,14 @@ chmod +x scalpel-macos-arm64 && mv scalpel-macos-arm64 ~/.local/bin/scalpel
 
 # macOS Intel
 curl -LO https://github.com/ericwang07/scalpel.nvim/releases/latest/download/scalpel-macos-x86_64
+chmod +x scalpel-macos-x86_64 && mv scalpel-macos-x86_64 ~/.local/bin/scalpel
 
 # Linux x86_64
 curl -LO https://github.com/ericwang07/scalpel.nvim/releases/latest/download/scalpel-linux-x86_64
+chmod +x scalpel-linux-x86_64 && mv scalpel-linux-x86_64 ~/.local/bin/scalpel
 ```
 
-Then configure the plugin:
-
-```lua
-require("scalpel").setup({
-  binary_path = vim.fn.expand("~/.local/bin/scalpel"),
-  port = 3000,
-})
-```
+The plugin automatically finds `scalpel` in your PATH.
 
 ### 3. Set Up the AI Model
 
@@ -136,41 +141,74 @@ curl -LO https://huggingface.co/Qwen/Qwen2.5-Coder-1.5B-Instruct-GGUF/resolve/ma
 
 #### Environment Variables
 
-The server expects these environment variables:
+Add these to your shell profile (`~/.bashrc`, `~/.zshrc`, etc.):
 
 ```bash
-export SCALPEL_PORT=3000
+# Required
 export SCALPEL_MODEL_PATH="/path/to/your/model.gguf"
-export SCALPEL_LLAMA_CPP_PATH="/path/to/llama.cpp/build/bin/llama-server"
+
+# Optional (with defaults)
+export SCALPEL_PORT=3000           # Server port
+export SCALPEL_MAX_CONTEXT=1024    # Max context window
+export SCALPEL_GPU_LAYERS=-1       # GPU layers (-1 = all)
 ```
 
-Add these to your shell profile (`~/.bashrc`, `~/.zshrc`, etc.) to persist them.
+#### Install llama-server
 
-> **Finding llama.cpp**: Install from [llama.cpp](https://github.com/ggerganov/llama.cpp):
-> ```bash
-> git clone https://github.com/ggerganov/llama.cpp
-> cd llama.cpp
-> make
-> # Binary will be at ./build/bin/llama-server
-> ```
+Scalpel requires `llama-server` from llama.cpp to be in your PATH:
+
+```bash
+# macOS (Homebrew)
+brew install llama.cpp
+
+# Or build from source
+git clone https://github.com/ggerganov/llama.cpp && cd llama.cpp
+cmake -B build && cmake --build build --config Release
+# Add build/bin to your PATH, or copy llama-server to ~/.local/bin/
+```
 
 ### 4. Configure nvim-cmp
 
-Update your `nvim-cmp` configuration to integrate Scalpel:
+#### Simple Setup (Recommended)
+
+Use `setup_cmp()` to automatically configure nvim-cmp with Scalpel:
 
 ```lua
-local cmp = require("cmp")
+-- In your lazy.nvim plugin spec:
+{
+  "ericwang07/scalpel.nvim",
+  dependencies = { "hrsh7th/nvim-cmp", "nvim-lua/plenary.nvim" },
+  config = function()
+    require("scalpel").setup_cmp({
+      cmp_config = {
+        -- Your existing nvim-cmp sources
+        sources = {
+          { name = "nvim_lsp" },
+          { name = "buffer" },
+          { name = "path" },
+        },
+      },
+    })
+  end,
+}
+```
 
+This automatically adds the Scalpel source, comparator, and formatter.
+
+#### Manual Setup (Advanced)
+
+If you need more control over nvim-cmp configuration:
+
+```lua
+require("scalpel").setup()
+
+local cmp = require("cmp")
 cmp.setup({
-  -- Add Scalpel to your sources
   sources = {
     { name = "scalpel" },   -- Scalpel AI predictions (fallback)
-    { name = "nvim_lsp" },  -- Your LSP
+    { name = "nvim_lsp" },
     { name = "buffer" },
-    { name = "path" },
   },
-  
-  -- Add Scalpel comparator for boosting
   sorting = {
     comparators = {
       require("scalpel.comparator"),  -- Boost AI predictions
@@ -183,16 +221,9 @@ cmp.setup({
       cmp.config.compare.order,
     },
   },
-  
-  -- Add visual indicator for boosted items
   formatting = {
     format = function(entry, vim_item)
-      -- Apply Scalpel formatting (adds ⚡ to boosted items)
       vim_item = require("scalpel.formatter").format(entry, vim_item)
-      
-      -- Optional: chain other formatters (e.g., lspkind)
-      -- vim_item = require("lspkind").cmp_format(...)(entry, vim_item)
-      
       return vim_item
     end,
   },
@@ -224,12 +255,13 @@ Scalpel runs automatically in the background:
 
 ```lua
 require("scalpel").setup({
-  -- Path to server binary (nil = auto-detect in server/target/release/)
+  -- Path to server binary (nil = auto-detect)
+  -- Checks: 1) PATH, 2) server/target/release/ in plugin dir
   binary_path = nil,
-  
+
   -- Server port (must match SCALPEL_PORT env var)
   port = 3000,
-  
+
   -- Optional keymaps
   keymaps = {
     complete = "<C-k>",  -- Trigger manual completion
@@ -249,7 +281,8 @@ require("scalpel").setup({
 **Error**: Server starts but requests fail
 
 - Check environment variables are set: `echo $SCALPEL_MODEL_PATH`
-- Verify llama.cpp is accessible: `$SCALPEL_LLAMA_CPP_PATH --version`
+- Verify llama-server is in PATH: `which llama-server`
+- Verify model file exists: `ls -la $SCALPEL_MODEL_PATH`
 - Check server logs (currently silent - enable in `server.lua` for debugging)
 
 ### Completions Not Appearing

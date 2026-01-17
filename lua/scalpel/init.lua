@@ -146,6 +146,32 @@ function M.trigger_completion()
   end)
 end
 
+--- Simplified nvim-cmp setup that handles all integration automatically
+--- This is an alternative to calling setup() + manually configuring cmp
+--- @param opts table|nil Configuration options (same as setup(), plus cmp_config)
+---   opts.cmp_config: nvim-cmp config to merge with (sources, etc.)
+function M.setup_cmp(opts)
+  opts = opts or {}
+
+  -- Extract cmp_config before passing to regular setup
+  local cmp_config = opts.cmp_config or {}
+  opts.cmp_config = nil
+
+  -- Run normal plugin setup
+  M.setup(opts)
+
+  -- Configure nvim-cmp with Scalpel integration
+  local has_cmp, cmp = pcall(require, "cmp")
+  if not has_cmp then
+    vim.notify("Scalpel: nvim-cmp not found. Install nvim-cmp for completion support.", vim.log.levels.WARN)
+    return
+  end
+
+  local cmp_helper = require("scalpel.cmp_helper")
+  local merged_config = cmp_helper.merge_cmp_config(cmp_config)
+  cmp.setup(merged_config)
+end
+
 -- Expose submodules for advanced usage
 M.server = server
 M.client = client
