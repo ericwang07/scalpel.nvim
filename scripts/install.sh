@@ -89,17 +89,22 @@ if [ "$DOWNLOAD_MODEL" = "y" ] || [ "$DOWNLOAD_MODEL" = "Y" ]; then
     
     echo ""
     echo "Select a model:"
-    echo "  1) Qwen2.5-Coder-1.5B-Instruct (Q4_K_M) - Fast, ~1GB [Recommended]"
-    echo "  2) Qwen2.5-Coder-7B-Instruct (Q4_K_M) - Higher quality, ~4.5GB"
-    echo "  3) Skip model download"
+    echo "  1) Qwen2.5-Coder-3B-Instruct (Q4_K_M) - ~2GB [Recommended for best speed/quality balance]"
+    echo "  2) Qwen2.5-Coder-1.5B-Instruct (Q4_K_M) - ~1GB [Faster but basic quality]"
+    echo "  3) Qwen2.5-Coder-7B-Instruct (Q4_K_M) - ~4.5GB [Best quality but slower]"
+    echo "  4) Skip model download"
     read -r MODEL_CHOICE
     
     case "$MODEL_CHOICE" in
         1)
+            MODEL_URL="https://huggingface.co/Qwen/Qwen2.5-Coder-3B-Instruct-GGUF/resolve/main/qwen2.5-coder-3b-instruct-q4_k_m.gguf"
+            MODEL_FILE="qwen2.5-coder-3b-instruct-q4_k_m.gguf"
+            ;;
+        2)
             MODEL_URL="https://huggingface.co/Qwen/Qwen2.5-Coder-1.5B-Instruct-GGUF/resolve/main/qwen2.5-coder-1.5b-instruct-q4_k_m.gguf"
             MODEL_FILE="qwen2.5-coder-1.5b-instruct-q4_k_m.gguf"
             ;;
-        2)
+        3)
             MODEL_URL="https://huggingface.co/Qwen/Qwen2.5-Coder-7B-Instruct-GGUF/resolve/main/qwen2.5-coder-7b-instruct-q4_k_m.gguf"
             MODEL_FILE="qwen2.5-coder-7b-instruct-q4_k_m.gguf"
             ;;
@@ -137,10 +142,21 @@ if [ -n "$MODEL_FILE" ]; then
 else
     echo -e "${YELLOW}export SCALPEL_MODEL_PATH=\"/path/to/your/model.gguf\"${NC}"
 fi
-echo -e "${YELLOW}export SCALPEL_LLAMA_CPP_PATH=\"/path/to/llama-server\"${NC}"
+echo ""
+echo "Make sure llama-server is in your PATH (install via: brew install llama.cpp)"
 echo ""
 echo "Then configure Neovim (lazy.nvim):"
 echo ""
-echo '  { "ericwang07/scalpel.nvim", config = function() require("scalpel").setup() end }'
+echo '  {'
+echo '    "ericwang07/scalpel.nvim",'
+echo '    dependencies = { "hrsh7th/nvim-cmp", "nvim-lua/plenary.nvim" },'
+echo '    config = function()'
+echo '      require("scalpel").setup_cmp({'
+echo '        cmp_config = {'
+echo '          sources = { { name = "nvim_lsp" }, { name = "buffer" } },'
+echo '        },'
+echo '      })'
+echo '    end,'
+echo '  }'
 echo ""
 echo -e "For llama.cpp installation, see: ${GREEN}https://github.com/ggerganov/llama.cpp${NC}"
