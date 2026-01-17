@@ -67,7 +67,7 @@ function source:complete(params, callback)
 	-- Return the AI prediction as a single completion item
 	local item = {
 		label = prediction,
-		kind = require("cmp").lsp.CompletionItemKind.Event,
+		kind = require("cmp").lsp.CompletionItemKind.Text,
 		word = prediction,
 		sortText = "!" .. prediction, -- "!" prefix makes it sort early
 	}

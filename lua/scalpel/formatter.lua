@@ -46,7 +46,7 @@ function M.format(entry, vim_item)
 
 	if prediction and score > 0 then
 		-- This item matches the AI prediction - mark it with lightning
-		vim_item.kind = (vim_item.kind or "") .. " " .. M.ICON
+		vim_item.kind = (vim_item.kind or "") .. " " .. M.ICON .. " "
 	else
 		-- No match - add padding to keep menu width stable
 		vim_item.kind = (vim_item.kind or "") .. "   "
