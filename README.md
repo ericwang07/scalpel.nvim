@@ -22,7 +22,7 @@ https://github.com/user-attachments/assets/a0963985-3c76-43c7-be4e-f115947edc23
 - **⚡ Progressive Enhancement**: LSP results appear instantly, AI boosting happens asynchronously
 - **🎯 Fuzzy Matching**: Matches predictions using exact, prefix/suffix, and substring algorithms
 - **🔄 Non-blocking**: Requests are debounced (100ms) and stale responses are discarded
-- **🎨 Visual Indicators**: Boosted items are marked with  so you know which suggestions are AI-powered
+- **🎨 Visual Indicators**: Boosted items are marked with ⚡ so you know which suggestions are AI-powered
 - **🏠 100% Local**: All AI inference runs on your machine - no cloud, no telemetry
 
 ## 📋 Requirements
@@ -239,7 +239,7 @@ Scalpel runs automatically in the background:
 1. Start typing in Insert mode
 2. LSP completions appear immediately
 3. After 100ms of typing pause, Scalpel fetches an AI prediction
-4. Matching LSP items jump to the top with a  indicator
+4. Matching LSP items jump to the top with a ⚡ indicator
 
 ### Manual Commands
 
@@ -292,7 +292,7 @@ require("scalpel").setup({
 3. Ensure you're in Insert mode (Scalpel only triggers on `TextChangedI`)
 4. Wait 100ms after typing (debounce period)
 
-### No Visual Indicators ()
+### No Visual Indicators (⚡)
 
 - Verify formatter is in your nvim-cmp config (see step 4 above)
 - Check that predictions are being fetched: `:ScalpelComplete` should show a notification
@@ -304,7 +304,7 @@ Scalpel uses a **hybrid architecture**:
 1. **Background Fetcher** (`fetcher.lua`): Listens to text changes, debounces for 100ms, fetches AI predictions
 2. **Fuzzy Matcher** (`matcher.lua`): Scores completions (3=exact, 2=prefix/suffix, 1=substring)
 3. **Comparator** (`comparator.lua`): Boosts matching LSP items to the top
-4. **Formatter** (`formatter.lua`): Adds  to boosted items
+4. **Formatter** (`formatter.lua`): Adds ⚡ to boosted items
 5. **Fallback Source** (`cmp.lua`): Provides raw AI prediction when LSP has no suggestions
 
 This design keeps your existing LSP workflow while adding AI intelligence on top.

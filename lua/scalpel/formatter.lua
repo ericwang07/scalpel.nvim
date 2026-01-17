@@ -2,7 +2,7 @@
 Scalpel nvim-cmp Formatter
 ============================
 
-This formatter adds a visual indicator () to completion items that match
+This formatter adds a visual indicator (⚡) to completion items that match
 the AI's prediction, making it easy to see which items are "boosted".
 
 How It Works:
@@ -29,7 +29,7 @@ local matcher = require("scalpel.matcher")
 
 local M = {}
 
-M.ICON = ""
+M.ICON = "⚡"
 
 --- Formats a completion item, adding visual indicator if it matches the prediction
 --- @param entry table nvim-cmp entry object
