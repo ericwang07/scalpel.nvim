@@ -1,6 +1,6 @@
 --[[
 Scalpel Fuzzy Matcher
-======================
+=====================
 
 This module provides fuzzy matching logic for comparing AI predictions
 with completion candidates. Used by both the comparator (for sorting)
@@ -8,8 +8,8 @@ and formatter (for visual indicators).
 
 Scoring System:
   3 = Exact match (e.g., "concat" == "concat")
-  2 = Prefix or Suffix match (e.g., "concat" starts with "con")
-  1 = Substring match (e.g., "concat" contains "cat")
+  2 = Prefix match (e.g., "string" starts with "st")
+  1 = Suffix match or Substring match (e.g., "string" ends with "ring" or contains "tri")
   0 = No match
 
 Minimum Length:
@@ -17,9 +17,16 @@ Minimum Length:
   at least 3 characters for prefix/suffix/substring matches. Exact matches
   have no length requirement.
 
+Priority:
+  Prefix matches are prioritized over suffix matches to prefer full identifiers.
+  When typing "st", predictions like "ring" will boost "string" (prefix match)
+  over other completions that might only match by suffix.
+
 Example:
   prediction="tab", candidate="table" -> Score 2 (prefix)
   prediction="ta", candidate="table"  -> Score 0 (too short)
+  prediction="ring", candidate="string" -> Score 2 (prefix - preferred)
+  prediction="ring", candidate="spring" -> Score 1 (suffix - lower priority)
   prediction="cat", candidate="concat" -> Score 1 (substring)
 --]]
 
@@ -37,15 +44,15 @@ function M.score(candidate, prediction)
   -- Exact match (highest priority, no length requirement)
   if candidate == prediction then return 3 end
   
-  -- Prefix/Suffix match (requires >= 3 chars to avoid noise)
+  -- Prefix match (highest priority, requires >= 3 chars)
   if #prediction > 3 and #candidate > 3 then
     if vim.startswith(candidate, prediction) or vim.startswith(prediction, candidate) then
-      return 2
+      return 2  -- Priority over suffix matches
     end
     
-    -- Suffix match
+    -- Suffix match (lower priority)
     if vim.endswith(candidate, prediction) or vim.endswith(prediction, candidate) then
-      return 2
+      return 1  -- Lower than prefix matches
     end
   end
 
