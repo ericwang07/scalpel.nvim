@@ -28,16 +28,16 @@ local M = {}
 
 --- Default configuration
 M.defaults = {
-  -- Binary path (nil = auto-detect)
-  binary_path = nil,
-  
-  -- Server port
-  port = 3000,
-  
-  -- Keymaps (nil = disabled)
-  keymaps = {
-    complete = nil,
-  },
+	-- Binary path (nil = auto-detect)
+	binary_path = nil,
+
+	-- Server port
+	port = 3000,
+
+	-- Keymaps (nil = disabled)
+	keymaps = {
+		complete = nil,
+	},
 }
 
 --- Active configuration (set by setup())
@@ -46,10 +46,10 @@ M.options = {}
 --- Initializes configuration by merging user options with defaults
 --- @param opts table|nil User configuration options
 function M.setup(opts)
-  M.options = vim.tbl_deep_extend("force", M.defaults, opts or {})
-  
-  -- Construct server URL from port
-  M.options.server_url = "http://127.0.0.1:" .. M.options.port
+	M.options = vim.tbl_deep_extend("force", M.defaults, opts or {})
+
+	-- Construct server URL from port
+	M.options.server_url = "http://127.0.0.1:" .. M.options.port
 end
 
 return M

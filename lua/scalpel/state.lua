@@ -20,9 +20,9 @@ State Structure:
 
 -- Initialize global state if it doesn't exist
 if not _G.ScalpelState then
-  _G.ScalpelState = {
-    prediction = nil  -- Current AI prediction
-  }
+	_G.ScalpelState = {
+		prediction = nil, -- Current AI prediction
+	}
 end
 
 -- Return the global singleton

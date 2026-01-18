@@ -1,12 +1,12 @@
 --[[
 Scalpel - AI-Powered Code Completion for Neovim
-=================================================
+===============================================
 
 Main entry point for the Scalpel plugin. Handles setup, user commands,
 keymaps, and exposes core functionality.
 
 Architecture Overview:
-  - server.lua: Manages the Rust AI server process
+  - server.lua: Server status checking (user-managed server)
   - client.lua: HTTP client for talking to the server
   - fetcher.lua: Background service that auto-fetches predictions
   - state.lua: Shared state (current prediction)
@@ -24,31 +24,17 @@ Setup:
   })
 
 User Commands:
-  :ScalpelStart    - Start the AI server
-  :ScalpelStop     - Stop the AI server
-  :ScalpelRestart  - Restart the AI server
-  :ScalpelHealth   - Check server health
+  :ScalpelHealth   - Check if server is running
   :ScalpelComplete - Trigger manual completion
 
-nvim-cmp Integration:
-  Add to your nvim-cmp config:
-    sorting = {
-      comparators = {
-        require("scalpel.comparator"),  -- Boost AI predictions
-        ...
-      }
-    },
-    sources = {
-      { name = 'scalpel' },  -- Fallback source
-      { name = 'nvim_lsp' },
-      ...
-    },
-    formatting = {
-      format = function(entry, vim_item)
-        vim_item = require("scalpel.formatter").format(entry, vim_item)
-        return vim_item
-      end
-    }
+Server Management (User-Managed):
+  The Scalpel server is managed by the user, not by the plugin.
+  Start the server: $ scalpel start
+  Stop the server:  $ scalpel stop
+
+nvim-cmp Integration (Passive):
+  Scalpel registers its components with nvim-cmp without overwriting your config.
+  Your existing cmp.setup() continues to work as before.
 --]]
 
 local config = require("scalpel.config")
@@ -61,13 +47,10 @@ local M = {}
 --- Initializes the plugin
 --- @param opts table|nil Configuration options
 function M.setup(opts)
-  -- Initialize config
   config.setup(opts)
-  
-  -- Start background fetcher (listens to TextChangedI)
+
   fetcher.setup()
-  
-  -- Apply keymaps if configured
+
   if config.options.keymaps then
     if config.options.keymaps.complete then
       vim.keymap.set("n", config.options.keymaps.complete, function()
@@ -76,42 +59,29 @@ function M.setup(opts)
     end
   end
 
-  -- Create user commands
-  vim.api.nvim_create_user_command("ScalpelStart", function()
-    server.start()
-  end, {})
-
-  vim.api.nvim_create_user_command("ScalpelStop", function()
-    server.stop()
-  end, {})
-
-  vim.api.nvim_create_user_command("ScalpelRestart", function()
-    server.restart()
-  end, {})
-  
   vim.api.nvim_create_user_command("ScalpelHealth", function()
-    client.health_check()
+    server.health_check()
   end, {})
 
   vim.api.nvim_create_user_command("ScalpelComplete", function()
     M.trigger_completion()
   end, {})
 
-  -- Auto-stop server on Neovim exit
-  vim.api.nvim_create_autocmd("VimLeavePre", {
-    callback = function()
-      server.stop()
-    end,
-  })
-
-  -- Auto-start server on plugin load
-  server.start()
-  
-  -- Register nvim-cmp source (fallback suggestions)
-  local has_cmp, cmp = pcall(require, "cmp")
-  if has_cmp then
-    cmp.register_source("scalpel", require("scalpel.cmp").new())
-  end
+  vim.fn.timer_start(500, function()
+    local status = server.status()
+    if status.running then
+      vim.notify(
+        string.format("Scalpel: Server is running on port %d", status.port),
+        vim.log.levels.INFO
+      )
+    else
+      vim.notify("Scalpel: Server is not running", vim.log.levels.WARN)
+      vim.notify(
+        "To start: run 'scalpel start' in your terminal, then :ScalpelHealth to verify",
+        vim.log.levels.INFO
+      )
+    end
+  end)
 end
 
 --- Manually triggers a completion request and displays the result
@@ -120,12 +90,11 @@ function M.trigger_completion()
   local buf = vim.api.nvim_get_current_buf()
   local win = vim.api.nvim_get_current_win()
   local cursor = vim.api.nvim_win_get_cursor(win)
-  local row, col = cursor[1] - 1, cursor[2]  -- Convert to 0-indexed
+  local row, col = cursor[1] - 1, cursor[2]
 
-  -- Extract text before and after cursor (using col+1 for Normal mode)
   local prefix_lines = vim.api.nvim_buf_get_text(buf, 0, 0, row, col + 1, {})
   local suffix_lines = vim.api.nvim_buf_get_text(buf, row, col + 1, -1, -1, {})
-  
+
   local prefix = table.concat(prefix_lines, "\n")
   local suffix = table.concat(suffix_lines, "\n")
   local filetype = vim.bo[buf].filetype
@@ -153,14 +122,11 @@ end
 function M.setup_cmp(opts)
   opts = opts or {}
 
-  -- Extract cmp_config before passing to regular setup
   local cmp_config = opts.cmp_config or {}
   opts.cmp_config = nil
 
-  -- Run normal plugin setup
   M.setup(opts)
 
-  -- Configure nvim-cmp with Scalpel integration
   local has_cmp, cmp = pcall(require, "cmp")
   if not has_cmp then
     vim.notify("Scalpel: nvim-cmp not found. Install nvim-cmp for completion support.", vim.log.levels.WARN)
@@ -168,11 +134,9 @@ function M.setup_cmp(opts)
   end
 
   local cmp_helper = require("scalpel.cmp_helper")
-  local merged_config = cmp_helper.merge_cmp_config(cmp_config)
-  cmp.setup(merged_config)
+  cmp_helper.setup({ cmp_config = cmp_config })
 end
 
--- Expose submodules for advanced usage
 M.server = server
 M.client = client
 

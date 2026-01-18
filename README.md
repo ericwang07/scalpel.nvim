@@ -232,33 +232,45 @@ cmp.setup({
 
 ## 🚀 Usage
 
-### Automatic Completion
+### Starting the Server
 
-Scalpel runs automatically in the background:
+The Scalpel server must be started manually:
 
-1. Start typing in Insert mode
-2. LSP completions appear immediately
-3. After 100ms of typing pause, Scalpel fetches an AI prediction
-4. Matching LSP items jump to the top with a ⚡ indicator
+```bash
+# Set environment variables (add to your shell profile)
+export SCALPEL_MODEL_PATH="/path/to/your/model.gguf"
 
-### Manual Commands
+# Start the server
+scalpel start
+```
+
+The server will run in your terminal. Keep it running while you use nvim.
+
+### Using Scalpel in Neovim
+
+1. Open nvim - the plugin will check if the server is running
+2. If the server is running, you'll see: `Scalpel: Server is running on port 3000`
+3. If not, you'll see: `Scalpel: Server is not running`
+4. Start typing in Insert mode - AI completions will be boosted
+
+### Checking Server Status
 
 ```vim
-:ScalpelStart       " Start the AI server
-:ScalpelStop        " Stop the AI server
-:ScalpelRestart     " Restart the AI server
-:ScalpelHealth      " Check server health
-:ScalpelComplete    " Trigger manual completion (for testing)
+:ScalpelHealth  " Check if server is running
+```
+
+### Stopping the Server
+
+When you're done, stop the server to free resources:
+
+```bash
+scalpel stop
 ```
 
 ### Configuration Options
 
 ```lua
 require("scalpel").setup({
-  -- Path to server binary (nil = auto-detect)
-  -- Checks: 1) PATH, 2) server/target/release/ in plugin dir
-  binary_path = nil,
-
   -- Server port (must match SCALPEL_PORT env var)
   port = 3000,
 
@@ -271,19 +283,95 @@ require("scalpel").setup({
 
 ## 🔧 Troubleshooting
 
-### Server Won't Start
+### Server Not Running
 
-**Error**: `Scalpel server binary not found`
+If you see `Scalpel: Server is not running` when opening nvim:
 
-- Build the server: `cd server && cargo build --release`
-- Or set `binary_path` in config to point to your binary
+```bash
+# Start the server
+scalpel start
 
-**Error**: Server starts but requests fail
+# Verify it's running
+curl -s http://localhost:3000/health
+# Should return: OK
+```
 
-- Check environment variables are set: `echo $SCALPEL_MODEL_PATH`
-- Verify llama-server is in PATH: `which llama-server`
-- Verify model file exists: `ls -la $SCALPEL_MODEL_PATH`
-- Check server logs (currently silent - enable in `server.lua` for debugging)
+In nvim, run:
+```vim
+:ScalpelHealth  " Should show "Server is running on port 3000"
+```
+
+### Connection Refused
+
+If completions don't appear or you see connection errors:
+
+1. Check if server is running:
+   ```bash
+   curl -s http://localhost:3000/health
+   ```
+
+2. Check server port (default 3000):
+   ```bash
+   echo $SCALPEL_PORT  # Should be 3000
+   ```
+
+3. Verify model path is set:
+   ```bash
+   echo $SCALPEL_MODEL_PATH  # Should point to your .gguf file
+   ```
+
+4. Restart the server:
+   ```bash
+   scalpel stop
+   scalpel start
+   ```
+
+### Port Already in Use
+
+If you see "Address already in use":
+
+```bash
+# Kill existing process
+pkill -f scalpel
+
+# Restart
+scalpel start
+```
+
+### Server Uses Too Much Memory
+
+```bash
+# Stop the server when not using nvim
+scalpel stop
+```
+
+### Model File Not Found
+
+Ensure `SCALPEL_MODEL_PATH` is set correctly:
+
+```bash
+# Check current value
+echo $SCALPEL_MODEL_PATH
+
+# Verify file exists
+ls -la $SCALPEL_MODEL_PATH
+
+# Set if needed (add to shell profile)
+export SCALPEL_MODEL_PATH="/path/to/your/model.gguf"
+```
+
+### llama-server Not Found
+
+Ensure `llama-server` is in your PATH:
+
+```bash
+# Check if it's available
+which llama-server
+
+# If not, install it
+brew install llama.cpp  # macOS
+# Or build from source: https://github.com/ggerganov/llama.cpp
+```
 
 ### Completions Not Appearing
 
@@ -294,7 +382,7 @@ require("scalpel").setup({
 
 ### No Visual Indicators (⚡)
 
-- Verify formatter is in your nvim-cmp config (see step 4 above)
+- Verify formatter is in your nvim-cmp config (see setup instructions above)
 - Check that predictions are being fetched: `:ScalpelComplete` should show a notification
 
 ## 📖 How It Works
