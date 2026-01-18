@@ -103,8 +103,9 @@ function M.fetch_prediction()
     end
 
     if not err and res and res.completion then
-      -- Update shared state with new prediction
+      -- Update shared state with new prediction and prefix
       state.prediction = res.completion
+      state.prefix = prefix
       
       -- Trigger nvim-cmp to re-sort items with new prediction
       -- This causes the comparator to run and boost matching items
@@ -113,8 +114,9 @@ function M.fetch_prediction()
         require("cmp").complete()
       end
     else
-      -- Clear prediction on error
+      -- Clear prediction and prefix on error
       state.prediction = nil
+      state.prefix = nil
     end
   end)
 end

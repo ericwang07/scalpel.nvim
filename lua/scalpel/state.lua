@@ -1,10 +1,10 @@
 --[[
 Scalpel Shared State
-=====================
+====================
 
-This module provides a singleton state object that stores the current AI prediction.
-Uses a global variable (_G.ScalpelState) to ensure consistency across different
-module loading contexts.
+This module provides a singleton state object that stores the current AI prediction
+and user's typed input. Uses a global variable (_G.ScalpelState) to ensure consistency
+across different module loading contexts.
 
 Why Global?
 -----------
@@ -16,12 +16,16 @@ State Structure:
   - prediction: string | nil
     The current AI-predicted completion text. Updated by fetcher.lua, 
     read by comparator.lua and formatter.lua.
+  - prefix: string | nil
+    The text before the cursor (what the user has already typed).
+    Updated by fetcher.lua, read by comparator.lua.
 --]]
 
 -- Initialize global state if it doesn't exist
 if not _G.ScalpelState then
 	_G.ScalpelState = {
 		prediction = nil, -- Current AI prediction
+		prefix = nil,     -- Text before cursor (user's input)
 	}
 end
 

@@ -46,11 +46,12 @@ M.score = function(entry1, entry2)
   local function get_score(entry)
     local label = entry.completion_item.label
     local insert_text = entry.completion_item.insertText or label
+    local prefix = state.prefix
     
     -- Check both label and insertText, use highest score
     return math.max(
-      matcher.score(label, prediction), 
-      matcher.score(insert_text, prediction)
+      matcher.score(label, prediction, prefix), 
+      matcher.score(insert_text, prediction, prefix)
     )
   end
 
