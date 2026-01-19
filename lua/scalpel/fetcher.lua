@@ -87,9 +87,28 @@ function M.fetch_prediction()
   local prefix_lines = vim.api.nvim_buf_get_text(buf, 0, 0, row, col, {})
   local suffix_lines = vim.api.nvim_buf_get_text(buf, row, col, -1, -1, {})
   
-  local prefix = table.concat(prefix_lines, "\n")
+  local prefix_text = table.concat(prefix_lines, "\n")
   local suffix = table.concat(suffix_lines, "\n")
   local filetype = vim.bo[buf].filetype
+
+  -- Extract only the last word/identifier before the cursor
+  -- This is what the user has typed so far for the current token
+  local function extract_last_word(text)
+    if not text or text == "" then return "" end
+    -- Remove trailing whitespace first
+    text = text:gsub("%s+$", "")
+    if text == "" then return "" end
+    -- Find the last word boundary (space or punctuation) and extract the word after it
+    -- Pattern: everything after the last space or punctuation character
+    local last_word = text:match(".*[%s%p]([^%s%p]*)$")
+    if last_word and last_word ~= "" then
+      return last_word
+    end
+    -- No boundary found, the entire text is the "word"
+    return text
+  end
+
+  local prefix = extract_last_word(prefix_text)
 
   -- Assign sequence number to this request
   request_seq = request_seq + 1

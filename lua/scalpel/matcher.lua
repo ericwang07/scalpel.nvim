@@ -1,6 +1,6 @@
 --[[
 Scalpel Fuzzy Matcher
-===================== 
+==================== 
 
 This module provides fuzzy matching logic for comparing AI predictions
 with completion candidates. Used by both the comparator (for sorting)
@@ -11,8 +11,7 @@ Scoring System (highest to lowest):
       (e.g., prefix="st", prediction="ring", candidate="string")
   3 = Exact match (e.g., "concat" == "concat")
   2 = Prefix match (e.g., "string" starts with "st" or vice versa)
-  1 = Suffix match or Substring match (e.g., "string" ends with "ring" or contains "tri")
-  0 = No match
+  0 = Suffix match, Substring match, or No match
 
 Full Identifier Priority:
   When the user's input (prefix) plus the AI prediction forms a complete
@@ -22,15 +21,15 @@ Full Identifier Priority:
 
 Minimum Length:
   To reduce noise from short predictions (like single letters), we require
-  at least 3 characters for prefix/suffix/substring matches. Full identifier
-  and exact matches have no length requirement.
+  at least 3 characters for prefix matches. Full identifier and exact matches
+  have no length requirement.
 
 Example:
   prefix="st", prediction="ring", candidate="string" -> Score 3 (full identifier)
   prefix="", prediction="ring", candidate="ring"    -> Score 3 (exact match)
   prediction="tab", candidate="table"               -> Score 2 (prefix)
-  prediction="ring", candidate="string"             -> Score 1 (suffix)
-  prediction="cat", candidate="concat"              -> Score 1 (substring)
+  prediction="ring", candidate="string"             -> Score 0 (suffix - NOT served)
+  prediction="cat", candidate="concat"              -> Score 0 (substring - NOT served)
   prediction="ab", candidate="abc"                  -> Score 0 (too short)
 --]]
 
@@ -48,7 +47,7 @@ function M.score(candidate, prediction, prefix)
   
   -- Exact match (highest priority, no length requirement)
   if candidate == prediction then return 3 end
-  
+
   -- Full identifier match: prefix + prediction == candidate
   -- This ensures we only serve completions where user input + AI prediction = full identifier
   -- Example: prefix="st", prediction="ring", candidate="string" -> match!
@@ -58,24 +57,13 @@ function M.score(candidate, prediction, prefix)
       return 3  -- Same priority as exact match
     end
   end
-  
-  -- Prefix match (highest priority, requires >= 3 chars)
+
+  -- Prefix match (highest priority for non-exact/non-full matches, requires >= 3 chars)
+  -- Suffix and substring matches are intentionally NOT included - we only serve
+  -- exact matches, full identifier matches, or prefix matches
   if #prediction > 3 and #candidate > 3 then
     if vim.startswith(candidate, prediction) or vim.startswith(prediction, candidate) then
-      return 2  -- Priority over suffix matches
-    end
-    
-    -- Suffix match (lower priority)
-    if vim.endswith(candidate, prediction) or vim.endswith(prediction, candidate) then
-      return 1  -- Lower than prefix matches
-    end
-  end
-
-  -- Substring match (requires >= 3 chars, lowest priority)
-  -- Note: string.find(..., 1, true) does literal search (not pattern matching)
-  if #prediction > 3 and #candidate > 3 then
-    if string.find(candidate, prediction, 1, true) or string.find(prediction, candidate, 1, true) then
-      return 1
+      return 2  -- Prefix match priority
     end
   end
   
