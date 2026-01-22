@@ -1,0 +1,146 @@
+#!/bin/bash
+set -e
+
+SCALPEL_DIR="${SCALPEL_DIR:-$HOME/.local/share/scalpel}"
+mkdir -p "$SCALPEL_DIR"
+PID_FILE="$SCALPEL_DIR/scalpel.pid"
+LOG_FILE="$SCALPEL_DIR/scalpel.log"
+
+# Get the directory where this script is located
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Find server binary: prefer same-directory, then sibling server/target/release/
+if [ -f "$SCRIPT_DIR/scalpel-server" ]; then
+    SERVER_BIN="$SCRIPT_DIR/scalpel-server"
+elif [ -f "$SCRIPT_DIR/../server/target/release/scalpel" ]; then
+    SERVER_BIN="$SCRIPT_DIR/../server/target/release/scalpel"
+elif [ -f "$SCRIPT_DIR/../server/target/debug/scalpel" ]; then
+    SERVER_BIN="$SCRIPT_DIR/../server/target/debug/scalpel"
+else
+    SERVER_BIN="scalpel-server"  # Fallback to PATH
+fi
+
+usage() {
+    echo "Usage: scalpel {start|stop|status}"
+    echo ""
+    echo "Commands:"
+    echo "  start   Start the Scalpel server"
+    echo "  stop    Stop the Scalpel server"
+    echo "  status  Check if Scalpel is running"
+    exit 1
+}
+
+start() {
+    # Check if already running
+    if [ -f "$PID_FILE" ]; then
+        PID=$(cat "$PID_FILE")
+        if kill -0 "$PID" 2>/dev/null; then
+            echo "Scalpel is already running (PID: $PID)"
+            return 0
+        else
+            # Stale PID file, remove it
+            rm -f "$PID_FILE"
+        fi
+    fi
+
+    # Check if port 3000 is in use
+    if lsof -i :3000 >/dev/null 2>&1; then
+        echo "Port 3000 is already in use. Stop any running instance first."
+        exit 1
+    fi
+
+    echo "Starting Scalpel server..."
+    "$SERVER_BIN" > "$LOG_FILE" 2>&1 &
+    PID=$!
+    echo $PID > "$PID_FILE"
+
+    # Wait a moment for server to start
+    sleep 1
+
+    if kill -0 "$PID" 2>/dev/null; then
+        echo "Scalpel started (PID: $PID)"
+    else
+        rm -f "$PID_FILE"
+        echo "Failed to start Scalpel. Check $LOG_FILE for details."
+        exit 1
+    fi
+}
+
+stop() {
+    if [ -f "$PID_FILE" ]; then
+        PID=$(cat "$PID_FILE")
+        if kill -0 "$PID" 2>/dev/null; then
+            echo "Stopping Scalpel (PID: $PID)..."
+            kill "$PID" 2>/dev/null || true
+
+            # Wait for process to terminate
+            for i in {1..5}; do
+                if ! kill -0 "$PID" 2>/dev/null; then
+                    break
+                fi
+                sleep 0.5
+            done
+
+            # Force kill if still running
+            if kill -0 "$PID" 2>/dev/null; then
+                kill -9 "$PID" 2>/dev/null || true
+            fi
+
+            rm -f "$PID_FILE"
+            echo "Scalpel stopped"
+        else
+            echo "Scalpel is not running (stale PID file)"
+            rm -f "$PID_FILE"
+        fi
+    else
+        # No PID file, check if process is running anyway
+        if lsof -i :3000 >/dev/null 2>&1; then
+            echo "Scalpel appears to be running but no PID file found."
+            echo "Use 'pkill -f scalpel' to force stop."
+        else
+            echo "Scalpel is not running"
+        fi
+    fi
+
+    # Cleanup any orphaned llama-server processes from this user
+    # Only kill processes that are llama-server to avoid killing other instances
+    pkill -f "llama-server.*scalpel" 2>/dev/null || true
+}
+
+status() {
+    if [ -f "$PID_FILE" ]; then
+        PID=$(cat "$PID_FILE")
+        if kill -0 "$PID" 2>/dev/null; then
+            echo "Scalpel is running (PID: $PID)"
+            return 0
+        else
+            echo "Scalpel is not running (stale PID file)"
+            rm -f "$PID_FILE"
+            return 1
+        fi
+    else
+        # Check if port is in use
+        if lsof -i :3000 >/dev/null 2>&1; then
+            echo "Scalpel appears to be running but no PID file found"
+            return 1
+        else
+            echo "Scalpel is not running"
+            return 1
+        fi
+    fi
+}
+
+case "$1" in
+    start)
+        start
+        ;;
+    stop)
+        stop
+        ;;
+    status)
+        status
+        ;;
+    *)
+        usage
+        ;;
+esac

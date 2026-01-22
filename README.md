@@ -45,7 +45,7 @@ Single-word completions backed by your language server. Lower hallucination, hig
 
 - Only Qwen2.5-Coder models are officially supported (for now)
 - Requires on-board GPU or patient CPU (3B models on integrated GPUs)
-- Setup takes ~5 minutes (model download + llama-server)
+- Setup takes ~5 minutes
 
 ---
 
@@ -85,15 +85,92 @@ shorter, more accurate suggestions—grounded in your LSP and your context.
 - [plenary.nvim](https://github.com/nvim-lua/plenary.nvim) - Lua utilities (for HTTP requests)
 
 ### AI Server
-- [llama.cpp](https://github.com/ggerganov/llama.cpp) - Inference engine (installed automatically)
+- llama.cpp inference (installed automatically with scalpel CLI)
 - GGUF Model - Qwen2.5-Coder recommended (~2GB)
-- Rust >= 1.70 *(only if building server from source)*
 
 ---
 
 ## Installation
 
-### 1. Install the Neovim Plugin
+### 1. Install Scalpel CLI
+
+Run the install script:
+
+```bash
+curl -sSL https://raw.githubusercontent.com/ericwang07/scalpel.nvim/main/scripts/install.sh | bash
+```
+
+This downloads the `scalpel` command to `~/.local/bin/`. Add it to your PATH:
+
+```bash
+export PATH="$PATH:$HOME/.local/bin"
+```
+
+### 2. Build the AI Server
+
+#### Option A: One-Line Install (Recommended)
+
+The install script above downloads everything you need.
+
+#### Option B: Build from Source
+
+```bash
+cd scalpel.nvim/server
+cargo build --release
+```
+
+The binary will be at `server/target/release/scalpel`. The `scalpel` wrapper script automatically finds it.
+
+#### Option C: Download Pre-built Binary
+
+```bash
+# macOS Apple Silicon
+curl -LO https://github.com/ericwang07/scalpel.nvim/releases/latest/download/scalpel-macos-arm64
+chmod +x scalpel-macos-arm64 && mv scalpel-macos-arm64 ~/.local/bin/scalpel-server
+
+# macOS Intel
+curl -LO https://github.com/ericwang07/scalpel.nvim/releases/latest/download/scalpel-macos-x86_64
+chmod +x scalpel-macos-x86_64 && mv scalpel-macos-x86_64 ~/.local/bin/scalpel-server
+
+# Linux x86_64
+curl -LO https://github.com/ericwang07/scalpel.nvim/releases/latest/download/scalpel-linux-x86_64
+chmod +x scalpel-linux-x86_64 && mv scalpel-linux-x86_64 ~/.local/bin/scalpel-server
+```
+
+Then download the wrapper script:
+
+```bash
+curl -sSL https://raw.githubusercontent.com/ericwang07/scalpel.nvim/main/scripts/scalpel -o ~/.local/bin/scalpel
+chmod +x ~/.local/bin/scalpel
+```
+
+### 3. Set Up the AI Model
+
+#### Recommended Models
+
+| Model | Size | Speed | Quality | Download |
+|-------|------|-------|---------|----------|
+| **Qwen2.5-Coder-3B-Instruct (Q4_K_M)** | ~2GB | Fast | Great | [HuggingFace](https://huggingface.co/Qwen/Qwen2.5-Coder-3B-Instruct-GGUF) |
+| Qwen2.5-Coder-1.5B-Instruct (Q4_K_M) | ~1GB | Very Fast | Basic | [HuggingFace](https://huggingface.co/Qwen/Qwen2.5-Coder-1.5B-Instruct-GGUF) |
+| Qwen2.5-Coder-7B-Instruct (Q4_K_M) | ~4.5GB | Slow | Best | [HuggingFace](https://huggingface.co/Qwen/Qwen2.5-Coder-7B-Instruct-GGUF) |
+
+The 3B model offers the best balance of speed and code completion quality for local use.
+
+#### Environment Variables
+
+Add to your shell profile (`~/.bashrc`, `~/.zshrc`, etc.):
+
+```bash
+# Required
+export SCALPEL_MODEL_PATH="/path/to/your/model.gguf"
+
+# Optional (with defaults)
+export SCALPEL_PORT=3000           # Server port
+export SCALPEL_MAX_CONTEXT=1024    # Max context window
+export SCALPEL_GPU_LAYERS=-1       # GPU layers (-1 = all)
+```
+
+### 4. Install the Neovim Plugin
 
 Using [lazy.nvim](https://github.com/folke/lazy.nvim):
 
@@ -139,84 +216,7 @@ use {
 }
 ```
 
-### 2. Build the AI Server
-
-#### Option A: One-Line Install (Recommended)
-
-```bash
-curl -sSL https://raw.githubusercontent.com/ericwang07/scalpel.nvim/main/scripts/install.sh | bash
-```
-
-This downloads the binary and optionally a recommended model.
-
-#### Option B: Build from Source
-
-```bash
-cd scalpel.nvim/server
-cargo build --release
-```
-
-The binary will be at `server/target/release/scalpel`. The plugin auto-detects this path (checks: 1) PATH, 2) sibling `scalpel.nvim/server/` directory, 3) `server/target/release/` relative to plugin).
-
-#### Option C: Download Pre-built Binary
-
-```bash
-# macOS Apple Silicon
-curl -LO https://github.com/ericwang07/scalpel.nvim/releases/latest/download/scalpel-macos-arm64
-chmod +x scalpel-macos-arm64 && mv scalpel-macos-arm64 ~/.local/bin/scalpel
-
-# macOS Intel
-curl -LO https://github.com/ericwang07/scalpel.nvim/releases/latest/download/scalpel-macos-x86_64
-chmod +x scalpel-macos-x86_64 && mv scalpel-macos-x86_64 ~/.local/bin/scalpel
-
-# Linux x86_64
-curl -LO https://github.com/ericwang07/scalpel.nvim/releases/latest/download/scalpel-linux-x86_64
-chmod +x scalpel-linux-x86_64 && mv scalpel-linux-x86_64 ~/.local/bin/scalpel
-```
-
-The plugin automatically finds `scalpel` in your PATH.
-
-### 3. Set Up the AI Model
-
-#### Recommended Models
-
-| Model | Size | Speed | Quality | Download |
-|-------|------|-------|---------|----------|
-| **Qwen2.5-Coder-3B-Instruct (Q4_K_M)** | ~2GB | Fast | Great | [HuggingFace](https://huggingface.co/Qwen/Qwen2.5-Coder-3B-Instruct-GGUF) |
-| Qwen2.5-Coder-1.5B-Instruct (Q4_K_M) | ~1GB | Very Fast | Basic | [HuggingFace](https://huggingface.co/Qwen/Qwen2.5-Coder-1.5B-Instruct-GGUF) |
-| Qwen2.5-Coder-7B-Instruct (Q4_K_M) | ~4.5GB | Slow | Best | [HuggingFace](https://huggingface.co/Qwen/Qwen2.5-Coder-7B-Instruct-GGUF) |
-
-The 3B model offers the best balance of speed and code completion quality for local use.
-
-#### Environment Variables
-
-Add these to your shell profile (`~/.bashrc`, `~/.zshrc`, etc.):
-
-```bash
-# Required
-export SCALPEL_MODEL_PATH="/path/to/your/model.gguf"
-
-# Optional (with defaults)
-export SCALPEL_PORT=3000           # Server port
-export SCALPEL_MAX_CONTEXT=1024    # Max context window
-export SCALPEL_GPU_LAYERS=-1       # GPU layers (-1 = all)
-```
-
-#### Install llama-server
-
-Scalpel requires `llama-server` from llama.cpp to be in your PATH:
-
-```bash
-# macOS (Homebrew)
-brew install llama.cpp
-
-# Or build from source
-git clone https://github.com/ggerganov/llama.cpp && cd llama.cpp
-cmake -B build && cmake --build build --config Release
-# Add build/bin to your PATH, or copy llama-server to ~/.local/bin/
-```
-
-### 4. Configure nvim-cmp
+### 5. Configure nvim-cmp
 
 #### Simple Setup (Recommended)
 
@@ -230,7 +230,6 @@ Use `setup_cmp()` to automatically configure nvim-cmp with Scalpel:
   config = function()
     require("scalpel").setup_cmp({
       cmp_config = {
-        -- Your existing nvim-cmp sources
         sources = {
           { name = "nvim_lsp" },
           { name = "buffer" },
@@ -285,26 +284,19 @@ cmp.setup({
 
 ### Starting the Server
 
-The Scalpel server must be started manually:
-
 ```bash
-# Set environment variables (add to your shell profile)
-export SCALPEL_MODEL_PATH="/path/to/your/model.gguf"
-
-# Start the server
 scalpel start
 ```
 
-The server will run in your terminal. Keep it running while you use nvim.
-
-### Using Scalpel in Neovim
-
-1. Open nvim - the plugin will check if the server is running
-2. If the server is running, you'll see: `Scalpel: Server is running on port 3000`
-3. If not, you'll see: `Scalpel: Server is not running`
-4. Start typing in Insert mode - AI completions will be boosted
+The server runs in the background. Use `scalpel status` to check if it's running.
 
 ### Checking Server Status
+
+```bash
+scalpel status
+```
+
+Or in Neovim:
 
 ```vim
 :ScalpelHealth  " Check if server is running
@@ -317,6 +309,13 @@ When you're done, stop the server to free resources:
 ```bash
 scalpel stop
 ```
+
+### Using Scalpel in Neovim
+
+1. Open nvim - the plugin will check if the server is running
+2. If the server is running, you'll see: `Scalpel: Server is running on port 3000`
+3. If not, you'll see: `Scalpel: Server is not running`
+4. Start typing in Insert mode - AI completions will be boosted
 
 ---
 
@@ -398,7 +397,7 @@ If completions don't appear or you see connection errors:
 
 1. Check if server is running:
    ```bash
-   curl -s http://localhost:3000/health
+   scalpel status
    ```
 
 2. Check server port (default 3000):
@@ -422,8 +421,8 @@ If completions don't appear or you see connection errors:
 If you see "Address already in use":
 
 ```bash
-# Kill existing process
-pkill -f scalpel
+# Stop existing server
+scalpel stop
 
 # Restart
 scalpel start
@@ -451,19 +450,6 @@ ls -la $SCALPEL_MODEL_PATH
 export SCALPEL_MODEL_PATH="/path/to/your/model.gguf"
 ```
 
-### llama-server Not Found
-
-Ensure `llama-server` is in your PATH:
-
-```bash
-# Check if it's available
-which llama-server
-
-# If not, install it
-brew install llama.cpp  # macOS
-# Or build from source: https://github.com/ggerganov/llama.cpp
-```
-
 ### Completions Not Appearing
 
 1. Verify nvim-cmp is working: `:CmpStatus`
@@ -471,7 +457,7 @@ brew install llama.cpp  # macOS
 3. Ensure you're in Insert mode (Scalpel only triggers on `TextChangedI`)
 4. Wait 100ms after typing (debounce period)
 
-### No Visual Indicators (󰌵)
+### No Visual Indicators
 
 - Verify formatter is in your nvim-cmp config (see setup instructions above)
 - Check that predictions are being fetched: `:ScalpelComplete` should show a notification

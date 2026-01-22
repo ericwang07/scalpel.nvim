@@ -69,15 +69,20 @@ fi
 
 echo -e "Latest version: ${GREEN}$LATEST_TAG${NC}"
 
-# Download binary
-BINARY_URL="https://github.com/$REPO/releases/download/$LATEST_TAG/scalpel-$PLATFORM"
-echo "Downloading binary from $BINARY_URL..."
-
+# Download wrapper script
+WRAPPER_URL="https://raw.githubusercontent.com/$REPO/$LATEST_TAG/scripts/scalpel"
+echo "Downloading scalpel wrapper from $WRAPPER_URL..."
 mkdir -p "$INSTALL_DIR"
-curl -sSL "$BINARY_URL" -o "$INSTALL_DIR/scalpel"
+curl -sSL "$WRAPPER_URL" -o "$INSTALL_DIR/scalpel"
 chmod +x "$INSTALL_DIR/scalpel"
 
-echo -e "${GREEN}✓ Binary installed to $INSTALL_DIR/scalpel${NC}"
+# Download server binary
+SERVER_URL="https://github.com/$REPO/releases/download/$LATEST_TAG/scalpel-$PLATFORM"
+echo "Downloading server binary from $SERVER_URL..."
+curl -sSL "$SERVER_URL" -o "$INSTALL_DIR/scalpel-server"
+chmod +x "$INSTALL_DIR/scalpel-server"
+
+echo -e "${GREEN}✓ Scalpel installed to $INSTALL_DIR/${NC}"
 
 # Download model (optional)
 echo ""
