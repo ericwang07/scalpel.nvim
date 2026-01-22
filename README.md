@@ -4,42 +4,94 @@
 [![Build](https://img.shields.io/github/actions/workflow/status/ericwang07/scalpel.nvim/release.yml?style=flat-square)](https://github.com/ericwang07/scalpel.nvim/actions)
 [![License](https://img.shields.io/github/license/ericwang07/scalpel.nvim?style=flat-square)](LICENSE)
 
-**AI-powered code completion for Neovim with hybrid LSP boosting**
+**Your code. Your models. Your machine.**
 
-Scalpel is a Neovim plugin that uses local AI models to predict code completions and intelligently boosts them in your LSP completion menu. Unlike traditional completion plugins that replace your LSP, Scalpel works *alongside* it, using fuzzy matching and smart ranking to surface AI predictions while keeping your existing LSP workflow intact.
-
-
-
+100% local AI completion built on llama.cpp. No cloud. No telemetry. Your code stays on your machine.
 
 https://github.com/user-attachments/assets/a0963985-3c76-43c7-be4e-f115947edc23
 
+---
 
+## Why Scalpel?
 
+### Privacy First
+No API calls, no telemetry, no code sent anywhere. Your work stays on your machine.
 
-## ✨ Features
+### Your GPU = Your Compute
+No subscriptions, no per-token fees. Download a model, run it forever.
 
-- **🚀 Hybrid Architecture**: Boosts LSP items with AI predictions rather than replacing them
-- **⚡ Progressive Enhancement**: LSP results appear instantly, AI boosting happens asynchronously
-- **🎯 Fuzzy Matching**: Matches predictions using exact, prefix/suffix, and substring algorithms
-- **🔄 Non-blocking**: Requests are debounced (100ms) and stale responses are discarded
-- **🎨 Visual Indicators**: Boosted items are marked with ⚡ so you know which suggestions are AI-powered
-- **🏠 100% Local**: All AI inference runs on your machine - no cloud, no telemetry
+### Works Offline
+No internet required after initial model download. Code anywhere, anytime.
 
-## 📋 Requirements
+### Smarter Autocomplete
+Scalpel doesn't generate patterns—it completes them. You're always in the loop, AI just extends what you're already writing.
+
+### LSP-Grounded
+Single-word completions backed by your language server. Lower hallucination, higher confidence.
+
+---
+
+## Who Is Scalpel For?
+
+**Scalpel is for you if:**
+
+- You need private completion (enterprise, sensitive repos, air-gapped systems)
+- You work offline or in restricted environments
+- You want one-time costs, not recurring API bills
+- You prefer local-first tools and self-hosted software
+- You want AI assistance without losing control of your code
+
+**Before you install:**
+
+- Only Qwen2.5-Coder models are officially supported (for now)
+- Requires on-board GPU or patient CPU (3B models on integrated GPUs)
+- Setup takes ~5 minutes (model download + llama-server)
+
+---
+
+## How Scalpel Is Different
+
+| | Scalpel | Cloud Solutions |
+|---|---|---|
+| Privacy | 100% local | Code sent to remote servers |
+| Cost | One-time model download | Subscription/API fees |
+| Offline | Works anywhere | Requires internet |
+| Scope | Single-word completions | Full function generation |
+| Philosophy | AI assists, you decide | AI writes, you review |
+
+Scalpel is **smarter autocomplete**, not AI pair programming. You'll see
+shorter, more accurate suggestions—grounded in your LSP and your context.
+
+---
+
+## Features
+
+- 100% Local - No cloud, no exceptions
+- Private - No telemetry, no API calls
+- Offline Capable - No internet after model download
+- LSP-Boosting - Enhances your existing completions
+- Visual Indicators - Marks AI-suggested items
+- Non-Blocking - Debounced with stale response discard
+- Focused Scope - Single-word completions, lower hallucination
+- llama.cpp Powered - Battle-tested inference engine
+
+---
+
+## Requirements
 
 ### Neovim Plugin
-- **Neovim** >= 0.9.0
-- **[nvim-cmp](https://github.com/hrsh7th/nvim-cmp)** - Completion engine
-- **[plenary.nvim](https://github.com/nvim-lua/plenary.nvim)** - Lua utilities (for HTTP requests)
+- Neovim >= 0.9.0
+- [nvim-cmp](https://github.com/hrsh7th/nvim-cmp) - Completion engine
+- [plenary.nvim](https://github.com/nvim-lua/plenary.nvim) - Lua utilities (for HTTP requests)
 
 ### AI Server
-- **[llama.cpp](https://github.com/ggerganov/llama.cpp)** - The `llama-server` binary for model inference
-- **AI Model**: GGUF format model (e.g., Qwen2.5-Coder, CodeLlama, DeepSeek-Coder)
-- **Rust** >= 1.70 *(only if building server from source)*
+- [llama.cpp](https://github.com/ggerganov/llama.cpp) - Inference engine (installed automatically)
+- GGUF Model - Qwen2.5-Coder recommended (~2GB)
+- Rust >= 1.70 *(only if building server from source)*
 
-> **Note**: If using pre-built binaries, you only need `llama-server` and a model file. No Rust or Python required.
+---
 
-## 📦 Installation
+## Installation
 
 ### 1. Install the Neovim Plugin
 
@@ -130,14 +182,11 @@ The plugin automatically finds `scalpel` in your PATH.
 
 | Model | Size | Speed | Quality | Download |
 |-------|------|-------|---------|----------|
-| **Qwen2.5-Coder-3B-Instruct (Q4_K_M)** | ~2GB | ⚡ Fast | ★★☆ Great | [HuggingFace](https://huggingface.co/Qwen/Qwen2.5-Coder-3B-Instruct-GGUF) |
-| Qwen2.5-Coder-1.5B-Instruct (Q4_K_M) | ~1GB | ⚡⚡ Very Fast | ★☆☆ Basic | [HuggingFace](https://huggingface.co/Qwen/Qwen2.5-Coder-1.5B-Instruct-GGUF) |
-| Qwen2.5-Coder-7B-Instruct (Q4_K_M) | ~4.5GB | 🐢 Slow | ★★★ Best | [HuggingFace](https://huggingface.co/Qwen/Qwen2.5-Coder-7B-Instruct-GGUF) |
+| **Qwen2.5-Coder-3B-Instruct (Q4_K_M)** | ~2GB | Fast | Great | [HuggingFace](https://huggingface.co/Qwen/Qwen2.5-Coder-3B-Instruct-GGUF) |
+| Qwen2.5-Coder-1.5B-Instruct (Q4_K_M) | ~1GB | Very Fast | Basic | [HuggingFace](https://huggingface.co/Qwen/Qwen2.5-Coder-1.5B-Instruct-GGUF) |
+| Qwen2.5-Coder-7B-Instruct (Q4_K_M) | ~4.5GB | Slow | Best | [HuggingFace](https://huggingface.co/Qwen/Qwen2.5-Coder-7B-Instruct-GGUF) |
 
 The 3B model offers the best balance of speed and code completion quality for local use.
-
-
-
 
 #### Environment Variables
 
@@ -230,7 +279,9 @@ cmp.setup({
 })
 ```
 
-## 🚀 Usage
+---
+
+## Usage
 
 ### Starting the Server
 
@@ -267,7 +318,9 @@ When you're done, stop the server to free resources:
 scalpel stop
 ```
 
-### Configuration Options
+---
+
+## Configuration Options
 
 ```lua
 require("scalpel").setup({
@@ -281,7 +334,45 @@ require("scalpel").setup({
 })
 ```
 
-## 🔧 Troubleshooting
+---
+
+## FAQ
+
+**Q: How is this different from Copilot?**
+A: Copilot sends code to the cloud. Scalpel doesn't. You get privacy and offline support. The tradeoff: smaller models, shorter suggestions.
+
+**Q: What models work?**
+A: Qwen2.5-Coder only (for now). 3B is the sweet spot.
+
+**Q: Do I need a GPU?**
+A: On-board GPU helps. Apple Silicon, Intel/AMD integrated GPUs work fine. CPU-only is slower but still usable.
+
+**Q: Setup time?**
+A: About 5 minutes.
+
+**Q: How good is the quality?**
+A: It's autocomplete-level, not "write your whole file" level. Single-word to phrase suggestions. Fast, focused, and lower hallucination risk.
+
+**Q: What inference engine does this use?**
+A: llama.cpp. It's fast, well-maintained, and trusted by the local LLM community. The plugin manages the server—you just install and use.
+
+---
+
+## How It Works
+
+Scalpel uses a **hybrid architecture**:
+
+1. **Background Fetcher** (`fetcher.lua`): Listens to text changes, debounces for 100ms, fetches AI predictions
+2. **Fuzzy Matcher** (`matcher.lua`): Scores completions (3=exact, 2=prefix/suffix, 1=substring)
+3. **Comparator** (`comparator.lua`): Boosts matching LSP items to the top
+4. **Formatter** (`formatter.lua`): Adds 󰌵 to boosted items
+5. **Fallback Source** (`cmp.lua`): Provides raw AI prediction when LSP has no suggestions
+
+This design keeps your existing LSP workflow while adding AI intelligence on top.
+
+---
+
+## Troubleshooting
 
 ### Server Not Running
 
@@ -380,28 +471,18 @@ brew install llama.cpp  # macOS
 3. Ensure you're in Insert mode (Scalpel only triggers on `TextChangedI`)
 4. Wait 100ms after typing (debounce period)
 
-### No Visual Indicators (⚡)
+### No Visual Indicators (󰌵)
 
 - Verify formatter is in your nvim-cmp config (see setup instructions above)
 - Check that predictions are being fetched: `:ScalpelComplete` should show a notification
 
-## 📖 How It Works
+---
 
-Scalpel uses a **hybrid architecture**:
-
-1. **Background Fetcher** (`fetcher.lua`): Listens to text changes, debounces for 100ms, fetches AI predictions
-2. **Fuzzy Matcher** (`matcher.lua`): Scores completions (3=exact, 2=prefix/suffix, 1=substring)
-3. **Comparator** (`comparator.lua`): Boosts matching LSP items to the top
-4. **Formatter** (`formatter.lua`): Adds ⚡ to boosted items
-5. **Fallback Source** (`cmp.lua`): Provides raw AI prediction when LSP has no suggestions
-
-This design keeps your existing LSP workflow while adding AI intelligence on top.
-
-## 📝 License
+## License
 
 MIT
 
-## 🙏 Acknowledgements
+## Acknowledgements
 
 - [llama.cpp](https://github.com/ggerganov/llama.cpp) - Fast LLM inference
 - [nvim-cmp](https://github.com/hrsh7th/nvim-cmp) - Completion framework
