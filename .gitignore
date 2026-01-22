@@ -5,7 +5,7 @@
 !.gitignore
 !/README.md
 
-# Lua plugin
+# Lua plugin (includes tests)
 !/lua/
 !/lua/**
 
@@ -30,3 +30,6 @@ __pycache__/
 !/.github/**
 !/scripts/
 !/scripts/**
+
+# Test runner
+!/run_tests.sh

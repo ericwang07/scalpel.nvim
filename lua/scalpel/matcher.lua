@@ -30,19 +30,22 @@ local M = {}
 --- @param prediction string The AI's predicted text
 --- @return number Score from 0-3 (0=no match, 3=exact match)
 function M.score(candidate, prediction)
+  -- Handle non-string inputs (return 0 for non-strings)
+  if type(candidate) ~= "string" or type(prediction) ~= "string" then return 0 end
+
   -- Handle nil/empty inputs
   if not candidate or not prediction then return 0 end
   if candidate == "" or prediction == "" then return 0 end
-  
+
   -- Exact match (highest priority, no length requirement)
   if candidate == prediction then return 3 end
-  
+
   -- Prefix/Suffix match (requires >= 3 chars to avoid noise)
-  if #prediction > 3 and #candidate > 3 then
+  if #prediction >= 3 and #candidate >= 3 then
     if vim.startswith(candidate, prediction) or vim.startswith(prediction, candidate) then
       return 2
     end
-    
+
     -- Suffix match
     if vim.endswith(candidate, prediction) or vim.endswith(prediction, candidate) then
       return 2
@@ -51,12 +54,12 @@ function M.score(candidate, prediction)
 
   -- Substring match (requires >= 3 chars, lowest priority)
   -- Note: string.find(..., 1, true) does literal search (not pattern matching)
-  if #prediction > 3 and #candidate > 3 then
+  if #prediction >= 3 and #candidate >= 3 then
     if string.find(candidate, prediction, 1, true) or string.find(prediction, candidate, 1, true) then
       return 1
     end
   end
-  
+
   -- No match
   return 0
 end
