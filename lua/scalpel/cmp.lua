@@ -28,6 +28,7 @@ Usage:
 --]]
 
 local state = require("scalpel.state")
+local config = require("scalpel.config")
 
 local source = {}
 
@@ -36,9 +37,9 @@ function source.new()
 	return setmetatable({}, { __index = source })
 end
 
---- Always available (though may return empty if no prediction)
+--- Availability depends on whether the plugin is enabled
 function source:is_available()
-	return true
+	return config.options.enabled
 end
 
 --- Debug identifier for this source

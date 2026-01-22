@@ -52,6 +52,11 @@ end
 --- Debounced handler for text changes
 --- Resets the 100ms timer on each keystroke
 function M.on_text_changed()
+  -- Skip if plugin is disabled
+  if not config.options.enabled then
+    return
+  end
+
   -- Cancel previous timer if still waiting
   if timer then
     timer:stop()

@@ -34,6 +34,9 @@ M.defaults = {
 	-- Server port
 	port = 3000,
 
+	-- Enable/disable the plugin
+	enabled = true,
+
 	-- Keymaps (nil = disabled)
 	keymaps = {
 		complete = nil,

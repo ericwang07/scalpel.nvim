@@ -1,41 +1,29 @@
 --[[
 Scalpel nvim-cmp Formatter
-============================
+===========================
 
-This formatter adds a visual indicator () to completion items that match
+This formatter adds a visual indicator (⚡) to completion items that match
 the AI's prediction, making it easy to see which items are "boosted".
-
-How It Works:
-  1. Scores the completion item against the current prediction
-  2. If score > 0, appends the icon to the kind field
-  3. If score = 0, appends padding to maintain stable menu width
-
-The padding is important to prevent the menu from "jumping" when the
-indicator appears/disappears as you type.
-
-Usage:
-  Add to nvim-cmp formatting:
-    formatting = {
-      format = function(entry, vim_item)
-        vim_item = require("scalpel.formatter").format(entry, vim_item)
-        -- Can chain other formatters here (e.g., lspkind)
-        return vim_item
-      end
-    }
 --]]
 
 local state = require("scalpel.state")
 local matcher = require("scalpel.matcher")
+local config = require("scalpel.config")
 
 local M = {}
 
-M.ICON = ""
+M.ICON = "⚡"
 
 --- Formats a completion item, adding visual indicator if it matches the prediction
 --- @param entry table nvim-cmp entry object
 --- @param vim_item table nvim-cmp vim_item object (modify in-place)
 --- @return table Modified vim_item
 function M.format(entry, vim_item)
+	-- Skip if plugin is disabled
+	if not config.options.enabled then
+		return vim_item
+	end
+
 	local prediction = state.prediction
 
 	local label = entry.completion_item.label

@@ -50,7 +50,7 @@ function M.health_check()
   else
     vim.notify("Scalpel: Server is not running", vim.log.levels.ERROR)
     vim.notify(
-      "To start: run 'scalpel start' in your terminal, then :ScalpelHealth to verify",
+      "To start: run 'scalpel start' (ensure ~/.local/bin is in your PATH), then :ScalpelHealth to verify",
       vim.log.levels.INFO
     )
   end

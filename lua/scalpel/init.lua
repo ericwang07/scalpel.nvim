@@ -26,6 +26,9 @@ Setup:
 User Commands:
   :ScalpelHealth   - Check if server is running
   :ScalpelComplete - Trigger manual completion
+  :ScalpelToggle   - Toggle plugin on/off
+  :ScalpelEnable   - Enable the plugin
+  :ScalpelDisable  - Disable the plugin
 
 Server Management (User-Managed):
   The Scalpel server is managed by the user, not by the plugin.
@@ -67,7 +70,22 @@ function M.setup(opts)
     M.trigger_completion()
   end, {})
 
+  vim.api.nvim_create_user_command("ScalpelToggle", function()
+    M.toggle()
+  end, {})
+
+  vim.api.nvim_create_user_command("ScalpelEnable", function()
+    M.enable()
+  end, {})
+
+  vim.api.nvim_create_user_command("ScalpelDisable", function()
+    M.disable()
+  end, {})
+
   vim.fn.timer_start(500, function()
+    if not config.options.enabled then
+      return
+    end
     local status = server.status()
     if status.running then
       vim.notify(
@@ -77,7 +95,7 @@ function M.setup(opts)
     else
       vim.notify("Scalpel: Server is not running", vim.log.levels.WARN)
       vim.notify(
-        "To start: run 'scalpel start' in your terminal, then :ScalpelHealth to verify",
+        "To start: run 'scalpel start' (ensure ~/.local/bin is in your PATH), then :ScalpelHealth to verify",
         vim.log.levels.INFO
       )
     end
@@ -113,6 +131,29 @@ function M.trigger_completion()
       end)
     end
   end)
+end
+
+--- Toggles the plugin on/off
+function M.toggle()
+  config.options.enabled = not config.options.enabled
+  local status = config.options.enabled and "enabled" or "disabled"
+  vim.notify("Scalpel " .. status, vim.log.levels.INFO)
+  if not config.options.enabled then
+    require("scalpel.state").prediction = nil
+  end
+end
+
+--- Enables the plugin
+function M.enable()
+  config.options.enabled = true
+  vim.notify("Scalpel enabled", vim.log.levels.INFO)
+end
+
+--- Disables the plugin
+function M.disable()
+  config.options.enabled = false
+  require("scalpel.state").prediction = nil
+  vim.notify("Scalpel disabled", vim.log.levels.INFO)
 end
 
 --- Simplified nvim-cmp setup that handles all integration automatically

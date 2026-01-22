@@ -317,6 +317,18 @@ scalpel stop
 3. If not, you'll see: `Scalpel: Server is not running`
 4. Start typing in Insert mode - AI completions will be boosted
 
+### Enabling/Disabling Scalpel
+
+You can toggle Scalpel on/off without restarting Neovim:
+
+```vim
+:ScalpelToggle    " Toggle between enabled/disabled
+:ScalpelEnable    " Enable Scalpel
+:ScalpelDisable   " Disable Scalpel
+```
+
+When disabled, AI boosting is paused and no predictions are fetched.
+
 ---
 
 ## Configuration Options

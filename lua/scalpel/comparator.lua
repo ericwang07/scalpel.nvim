@@ -27,6 +27,7 @@ Usage:
 
 local state = require("scalpel.state")
 local matcher = require("scalpel.matcher")
+local config = require("scalpel.config")
 
 local M = {}
 
@@ -35,6 +36,11 @@ local M = {}
 --- @param entry2 table Second completion entry
 --- @return boolean|nil true if entry1 should come before entry2, nil to defer to next comparator
 M.score = function(entry1, entry2)
+  -- Skip if plugin is disabled
+  if not config.options.enabled then
+    return nil
+  end
+
   local prediction = state.prediction
   
   -- No prediction means we have nothing to boost
