@@ -13,7 +13,6 @@ Architecture Overview:
   - matcher.lua: Fuzzy matching logic
   - comparator.lua: nvim-cmp comparator (boosts matching items)
   - formatter.lua: nvim-cmp formatter (adds ⚡ indicator)
-  - cmp.lua: nvim-cmp source (fallback suggestions)
 
 Setup:
   require("scalpel").setup({
