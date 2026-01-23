@@ -12,9 +12,6 @@ local M = {}
 function M.setup(opts)
   local cmp = require("cmp")
 
-  -- Register Scalpel source
-  cmp.register_source("scalpel", require("scalpel.cmp").new())
-
   -- Register Scalpel comparator globally
   cmp.config.compare.scalpel = require("scalpel.comparator")
 
@@ -26,12 +23,6 @@ function M.setup(opts)
   -- Override cmp.setup to inject Scalpel
   cmp.setup = function(user_config)
     user_config = user_config or {}
-
-    -- Merge user's sources with Scalpel
-    if not user_config.sources then
-      user_config.sources = {}
-    end
-    table.insert(user_config.sources, 1, { name = "scalpel" })
 
     -- Merge user's sorting with Scalpel
     if not user_config.sorting then
@@ -63,7 +54,6 @@ function M.setup(opts)
   -- Call cmp.setup() ourselves to establish baseline with Scalpel
   original_setup({
     sources = {
-      { name = "scalpel" },
       { name = "nvim_lsp" },
       { name = "luasnip" },
       { name = "path" },

@@ -253,7 +253,6 @@ require("scalpel").setup()
 local cmp = require("cmp")
 cmp.setup({
   sources = {
-    { name = "scalpel" },   -- Scalpel AI predictions (fallback)
     { name = "nvim_lsp" },
     { name = "buffer" },
   },
@@ -377,7 +376,6 @@ Scalpel uses a **hybrid architecture**:
 2. **Fuzzy Matcher** (`matcher.lua`): Scores completions (3=exact, 2=prefix/suffix, 1=substring)
 3. **Comparator** (`comparator.lua`): Boosts matching LSP items to the top
 4. **Formatter** (`formatter.lua`): Adds 󰌵 to boosted items
-5. **Fallback Source** (`cmp.lua`): Provides raw AI prediction when LSP has no suggestions
 
 This design keeps your existing LSP workflow while adding AI intelligence on top.
 
@@ -465,7 +463,7 @@ export SCALPEL_MODEL_PATH="/path/to/your/model.gguf"
 ### Completions Not Appearing
 
 1. Verify nvim-cmp is working: `:CmpStatus`
-2. Check Scalpel source is registered: Look for `scalpel` in `:CmpStatus` sources
+2. Verify Scalpel comparator is registered in your cmp sorting config
 3. Ensure you're in Insert mode (Scalpel only triggers on `TextChangedI`)
 4. Wait 100ms after typing (debounce period)
 
