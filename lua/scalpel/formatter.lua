@@ -25,12 +25,16 @@ function M.format(entry, vim_item)
 	end
 
 	local prediction = state.prediction
+	local typed_prefix = state.typed_prefix
 
 	local label = entry.completion_item.label
 	local insert_text = entry.completion_item.insertText or label
 
 	-- Check if this item matches the prediction
-	local score = math.max(matcher.score(label, prediction), matcher.score(insert_text, prediction))
+	local score = math.max(
+		matcher.score(label, prediction, typed_prefix),
+		matcher.score(insert_text, prediction, typed_prefix)
+	)
 
 	if prediction and score > 0 then
 		-- This item matches the AI prediction - mark it with lightning

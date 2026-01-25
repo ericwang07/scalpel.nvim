@@ -30,6 +30,15 @@ local config = require("scalpel.config")
 
 local M = {}
 
+--- Extract word prefix from line at cursor position
+--- @param line string The current line text
+--- @param col number Cursor column (0-indexed)
+--- @return string The word fragment before cursor (e.g., "con")
+local function extract_word_prefix(line, col)
+  local prefix_part = line:sub(1, col)
+  return prefix_part:match("[%w_]*$") or ""
+end
+
 -- Debounce timer for batching keystrokes
 local timer = nil
 
@@ -96,6 +105,10 @@ function M.fetch_prediction()
   local suffix = table.concat(suffix_lines, "\n")
   local filetype = vim.bo[buf].filetype
 
+  -- Extract word prefix at cursor position for fill comparison
+  local line = vim.api.nvim_buf_get_lines(buf, row, row + 1, false)[1] or ""
+  local typed_prefix = extract_word_prefix(line, col)
+
   -- Assign sequence number to this request
   request_seq = request_seq + 1
   local current_seq = request_seq
@@ -108,7 +121,8 @@ function M.fetch_prediction()
     end
 
     if not err and res and res.completion then
-      -- Update shared state with new prediction
+      -- Update shared state with new prediction and typed prefix
+      state.typed_prefix = typed_prefix
       state.prediction = res.completion
       
       -- Trigger nvim-cmp to re-sort items with new prediction
@@ -118,8 +132,9 @@ function M.fetch_prediction()
         require("cmp").complete()
       end
     else
-      -- Clear prediction on error
+      -- Clear prediction and typed_prefix on error
       state.prediction = nil
+      state.typed_prefix = nil
     end
   end)
 end

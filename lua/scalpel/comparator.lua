@@ -48,15 +48,17 @@ M.score = function(entry1, entry2)
     return nil
   end
 
+  local typed_prefix = state.typed_prefix
+
   -- Helper to compute the best score for an entry
   local function get_score(entry)
     local label = entry.completion_item.label
     local insert_text = entry.completion_item.insertText or label
-    
+
     -- Check both label and insertText, use highest score
     return math.max(
-      matcher.score(label, prediction), 
-      matcher.score(insert_text, prediction)
+      matcher.score(label, prediction, typed_prefix),
+      matcher.score(insert_text, prediction, typed_prefix)
     )
   end
 
