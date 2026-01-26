@@ -4,124 +4,47 @@
 [![Build](https://img.shields.io/github/actions/workflow/status/ericwang07/scalpel.nvim/release.yml?style=flat-square)](https://github.com/ericwang07/scalpel.nvim/actions)
 [![License](https://img.shields.io/github/license/ericwang07/scalpel.nvim?style=flat-square)](LICENSE)
 
-**Your code. Your models. Your machine.**
-
-100% local AI completion built on llama.cpp. No cloud. No telemetry. Your code stays on your machine.
+Local AI code completion for Neovim. Boosts LSP completions using llama.cpp.
 
 https://github.com/user-attachments/assets/a0963985-3c76-43c7-be4e-f115947edc23
 
----
-
-## Why Scalpel?
-
-### Privacy First
-No API calls, no telemetry, no code sent anywhere. Your work stays on your machine.
-
-### Your GPU = Your Compute
-No subscriptions, no per-token fees. Download a model, run it forever.
-
-### Works Offline
-No internet required after initial model download. Code anywhere, anytime.
-
-### Smarter Autocomplete
-Scalpel doesn't generate patterns—it completes them. You're always in the loop, AI just extends what you're already writing.
-
-### LSP-Grounded
-Single-word completions backed by your language server. Lower hallucination, higher confidence.
-
----
-
-## Who Is Scalpel For?
-
-**Scalpel is for you if:**
-
-- You need private completion (enterprise, sensitive repos, air-gapped systems)
-- You work offline or in restricted environments
-- You want one-time costs, not recurring API bills
-- You prefer local-first tools and self-hosted software
-- You want AI assistance without losing control of your code
-
-**Before you install:**
-
-- Only Qwen2.5-Coder models are officially supported (for now)
-- Requires on-board GPU or patient CPU (3B models on integrated GPUs)
-- Setup takes ~5 minutes
-
----
-
-## How Scalpel Is Different
-
-| | Scalpel | Cloud Solutions |
-|---|---|---|
-| Privacy | 100% local | Code sent to remote servers |
-| Cost | One-time model download | Subscription/API fees |
-| Offline | Works anywhere | Requires internet |
-| Scope | Single-word completions | Full function generation |
-| Philosophy | AI assists, you decide | AI writes, you review |
-
-Scalpel is **smarter autocomplete**, not AI pair programming. You'll see
-shorter, more accurate suggestions—grounded in your LSP and your context.
-
----
-
 ## Features
 
-- 100% Local - No cloud, no exceptions
-- Private - No telemetry, no API calls
-- Offline Capable - No internet after model download
-- LSP-Boosting - Enhances your existing completions
-- Visual Indicators - Marks AI-suggested items
-- Non-Blocking - Debounced with stale response discard
-- Focused Scope - Single-word completions, lower hallucination
-- llama.cpp Powered - Battle-tested inference engine
-
----
+- Local inference via llama.cpp (no cloud, no telemetry)
+- Integrates with nvim-cmp
+- Boosts LSP completions that match AI predictions
+- Visual indicator (⚡) for AI-boosted items
+- Non-blocking with debounced requests
 
 ## Requirements
 
-### Neovim Plugin
 - Neovim >= 0.9.0
-- [nvim-cmp](https://github.com/hrsh7th/nvim-cmp) - Completion engine
-- [plenary.nvim](https://github.com/nvim-lua/plenary.nvim) - Lua utilities (for HTTP requests)
-
-### AI Server
-- llama.cpp inference (installed automatically with scalpel CLI)
-- GGUF Model - Qwen2.5-Coder recommended (~2GB)
-
----
+- [nvim-cmp](https://github.com/hrsh7th/nvim-cmp)
+- [plenary.nvim](https://github.com/nvim-lua/plenary.nvim)
+- [llama.cpp](https://github.com/ggerganov/llama.cpp) (`llama-server` must be in PATH)
+- GGUF model (Qwen2.5-Coder recommended)
 
 ## Installation
 
-### 1. Install Scalpel CLI
-
-Run the install script:
+### 1. Install the CLI
 
 ```bash
 curl -sSL https://raw.githubusercontent.com/ericwang07/scalpel.nvim/main/scripts/install.sh | bash
 ```
 
-This downloads the `scalpel` command to `~/.local/bin/`. Add it to your PATH:
+Add to your PATH:
 
 ```bash
 export PATH="$PATH:$HOME/.local/bin"
 ```
 
-### 2. Build the AI Server
-
-#### Option A: One-Line Install (Recommended)
-
-The install script above downloads everything you need.
-
-#### Option B: Build from Source
+#### Alternative: Build from Source
 
 ```bash
-cd scalpel.nvim/server
-cargo build --release
+cd server && cargo build --release
 ```
 
-The binary will be at `server/target/release/scalpel`. The `scalpel` wrapper script automatically finds it.
-
-#### Option C: Download Pre-built Binary
+#### Alternative: Download Pre-built Binary
 
 ```bash
 # macOS Apple Silicon
@@ -144,9 +67,26 @@ curl -sSL https://raw.githubusercontent.com/ericwang07/scalpel.nvim/main/scripts
 chmod +x ~/.local/bin/scalpel
 ```
 
-### 3. Set Up the AI Model
+### 2. Install llama.cpp
 
-#### Recommended Models
+The server requires `llama-server` from llama.cpp:
+
+```bash
+# macOS
+brew install llama.cpp
+
+# Linux (build from source)
+git clone https://github.com/ggerganov/llama.cpp
+cd llama.cpp && make -j
+sudo cp llama-server /usr/local/bin/
+```
+
+Verify installation:
+```bash
+llama-server --version
+```
+
+### 3. Download a Model
 
 | Model | Size | Speed | Quality | Download |
 |-------|------|-------|---------|----------|
@@ -154,9 +94,7 @@ chmod +x ~/.local/bin/scalpel
 | Qwen2.5-Coder-1.5B-Instruct (Q4_K_M) | ~1GB | Very Fast | Basic | [HuggingFace](https://huggingface.co/Qwen/Qwen2.5-Coder-1.5B-Instruct-GGUF) |
 | Qwen2.5-Coder-7B-Instruct (Q4_K_M) | ~4.5GB | Slow | Best | [HuggingFace](https://huggingface.co/Qwen/Qwen2.5-Coder-7B-Instruct-GGUF) |
 
-The 3B model offers the best balance of speed and code completion quality for local use.
-
-#### Environment Variables
+### 4. Configure Environment
 
 Add to your shell profile (`~/.bashrc`, `~/.zshrc`, etc.):
 
@@ -170,7 +108,7 @@ export SCALPEL_MAX_CONTEXT=1024    # Max context window
 export SCALPEL_GPU_LAYERS=-1       # GPU layers (-1 = all)
 ```
 
-### 4. Install the Neovim Plugin
+### 5. Install the Plugin
 
 Using [lazy.nvim](https://github.com/folke/lazy.nvim):
 
@@ -216,36 +154,9 @@ use {
 }
 ```
 
-### 5. Configure nvim-cmp
+#### Manual nvim-cmp Setup
 
-#### Simple Setup (Recommended)
-
-Use `setup_cmp()` to automatically configure nvim-cmp with Scalpel:
-
-```lua
--- In your lazy.nvim plugin spec:
-{
-  "ericwang07/scalpel.nvim",
-  dependencies = { "hrsh7th/nvim-cmp", "nvim-lua/plenary.nvim" },
-  config = function()
-    require("scalpel").setup_cmp({
-      cmp_config = {
-        sources = {
-          { name = "nvim_lsp" },
-          { name = "buffer" },
-          { name = "path" },
-        },
-      },
-    })
-  end,
-}
-```
-
-This automatically adds the Scalpel source, comparator, and formatter.
-
-#### Manual Setup (Advanced)
-
-If you need more control over nvim-cmp configuration:
+For more control over nvim-cmp configuration:
 
 ```lua
 require("scalpel").setup()
@@ -277,208 +188,127 @@ cmp.setup({
 })
 ```
 
----
-
 ## Usage
 
-### Starting the Server
+### Server Management
 
 ```bash
-scalpel start
+scalpel start   # Start server in background
+scalpel stop    # Stop server
+scalpel status  # Check if running
 ```
 
-The server runs in the background. Use `scalpel status` to check if it's running.
-
-### Checking Server Status
-
-```bash
-scalpel status
-```
-
-Or in Neovim:
+### Neovim Commands
 
 ```vim
-:ScalpelHealth  " Check if server is running
+:ScalpelHealth    " Check server status
+:ScalpelToggle    " Toggle on/off
+:ScalpelEnable    " Enable
+:ScalpelDisable   " Disable
 ```
 
-### Stopping the Server
-
-When you're done, stop the server to free resources:
-
-```bash
-scalpel stop
-```
-
-### Using Scalpel in Neovim
-
-1. Open nvim - the plugin will check if the server is running
-2. If the server is running, you'll see: `Scalpel: Server is running on port 3000`
-3. If not, you'll see: `Scalpel: Server is not running`
-4. Start typing in Insert mode - AI completions will be boosted
-
-### Enabling/Disabling Scalpel
-
-You can toggle Scalpel on/off without restarting Neovim:
-
-```vim
-:ScalpelToggle    " Toggle between enabled/disabled
-:ScalpelEnable    " Enable Scalpel
-:ScalpelDisable   " Disable Scalpel
-```
-
-When disabled, AI boosting is paused and no predictions are fetched.
-
----
-
-## Configuration Options
+## Configuration
 
 ```lua
 require("scalpel").setup({
-  -- Server port (must match SCALPEL_PORT env var)
   port = 3000,
-
-  -- Optional keymaps
   keymaps = {
-    complete = "<C-k>",  -- Trigger manual completion
+    complete = "<C-k>",  -- Manual trigger
   },
 })
 ```
 
----
-
-## FAQ
-
-**Q: How is this different from Copilot?**
-A: Copilot sends code to the cloud. Scalpel doesn't. You get privacy and offline support. The tradeoff: smaller models, shorter suggestions.
-
-**Q: What models work?**
-A: Qwen2.5-Coder only (for now). 3B is the sweet spot.
-
-**Q: Do I need a GPU?**
-A: On-board GPU helps. Apple Silicon, Intel/AMD integrated GPUs work fine. CPU-only is slower but still usable.
-
-**Q: Setup time?**
-A: About 5 minutes.
-
-**Q: How good is the quality?**
-A: It's autocomplete-level, not "write your whole file" level. Single-word to phrase suggestions. Fast, focused, and lower hallucination risk.
-
-**Q: What inference engine does this use?**
-A: llama.cpp. It's fast, well-maintained, and trusted by the local LLM community. The plugin manages the server—you just install and use.
-
----
-
 ## How It Works
 
-Scalpel uses a **hybrid architecture**:
+Scalpel uses fill-based matching:
 
-1. **Background Fetcher** (`fetcher.lua`): Listens to text changes, debounces for 100ms, fetches AI predictions
-2. **Fuzzy Matcher** (`matcher.lua`): Scores completions (3=exact, 2=prefix/suffix, 1=substring)
-3. **Comparator** (`comparator.lua`): Boosts matching LSP items to the top
-4. **Formatter** (`formatter.lua`): Adds 󰌵 to boosted items
+1. You type "con" → fetcher extracts this as the typed prefix
+2. AI predicts "cat" (what should come after cursor)
+3. LSP returns candidates like "concat", "configure", "console"
+4. Matcher compares: "concat" minus "con" = "cat" → exact match
+5. "concat" gets boosted to top with ⚡ indicator
 
-This design keeps your existing LSP workflow while adding AI intelligence on top.
+## Architecture
 
----
+### Components
+
+- **Rust Server** (`server/`): Axum HTTP server managing llama.cpp subprocess
+- **Neovim Plugin** (`lua/scalpel/`):
+  - `fetcher.lua` - Debounces text changes, extracts context
+  - `client.lua` - HTTP client for server
+  - `state.lua` - Holds prediction and typed prefix
+  - `matcher.lua` - Exact match on fill portion
+  - `comparator.lua` - Boosts matching LSP items
+  - `formatter.lua` - Adds ⚡ indicator
+
+### Data Flow
+
+```
+TextChangedI → fetcher (debounce) → server → state → comparator → formatter
+```
 
 ## Troubleshooting
 
 ### Server Not Running
 
-If you see `Scalpel: Server is not running` when opening nvim:
-
 ```bash
-# Start the server
 scalpel start
-
-# Verify it's running
-curl -s http://localhost:3000/health
-# Should return: OK
+curl -s http://localhost:3000/health  # Should return: OK
 ```
 
-In nvim, run:
+In nvim:
 ```vim
 :ScalpelHealth  " Should show "Server is running on port 3000"
 ```
 
 ### Connection Refused
 
-If completions don't appear or you see connection errors:
-
-1. Check if server is running:
+1. Check server status:
    ```bash
    scalpel status
    ```
 
-2. Check server port (default 3000):
+2. Check port:
    ```bash
    echo $SCALPEL_PORT  # Should be 3000
    ```
 
-3. Verify model path is set:
+3. Verify model path:
    ```bash
-   echo $SCALPEL_MODEL_PATH  # Should point to your .gguf file
+   echo $SCALPEL_MODEL_PATH  # Should point to .gguf file
    ```
 
-4. Restart the server:
+4. Restart server:
    ```bash
-   scalpel stop
-   scalpel start
+   scalpel stop && scalpel start
    ```
 
 ### Port Already in Use
 
-If you see "Address already in use":
-
 ```bash
-# Stop existing server
 scalpel stop
-
-# Restart
 scalpel start
-```
-
-### Server Uses Too Much Memory
-
-```bash
-# Stop the server when not using nvim
-scalpel stop
 ```
 
 ### Model File Not Found
 
-Ensure `SCALPEL_MODEL_PATH` is set correctly:
-
 ```bash
-# Check current value
 echo $SCALPEL_MODEL_PATH
-
-# Verify file exists
 ls -la $SCALPEL_MODEL_PATH
-
-# Set if needed (add to shell profile)
-export SCALPEL_MODEL_PATH="/path/to/your/model.gguf"
 ```
 
 ### Completions Not Appearing
 
-1. Verify nvim-cmp is working: `:CmpStatus`
-2. Verify Scalpel comparator is registered in your cmp sorting config
-3. Ensure you're in Insert mode (Scalpel only triggers on `TextChangedI`)
+1. Verify nvim-cmp: `:CmpStatus`
+2. Check Scalpel comparator is in cmp sorting config
+3. Ensure Insert mode (triggers on `TextChangedI`)
 4. Wait 100ms after typing (debounce period)
 
 ### No Visual Indicators
 
-- Verify formatter is in your nvim-cmp config (see setup instructions above)
-- Check that predictions are being fetched: `:ScalpelComplete` should show a notification
-
----
+- Verify formatter is in nvim-cmp config
+- Check predictions are fetched: `:ScalpelComplete`
 
 ## License
 
 MIT
-
-## Acknowledgements
-
-- [llama.cpp](https://github.com/ggerganov/llama.cpp) - Fast LLM inference
-- [nvim-cmp](https://github.com/hrsh7th/nvim-cmp) - Completion framework
